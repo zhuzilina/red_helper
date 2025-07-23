@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>每日答题</title>
+    <link href="https://s4.zstatic.net/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #ff4d4f;
+            --hover-color: #eb110d;
+            --active-color: #cc434f;
+            --bg-color: rgba(255, 3, 7, 0.532);
+        }
+
+        body {
+            background: var(--bg-color);
+            font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", STHeiti, sans-serif;
+        }
+
+        .status-bar {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 8px 16px;
+            border: 1px solid #ffd4d5;
+            margin: 16px;
+            border-radius: 16px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+        }
+
+        .question-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(255, 77, 79, 0.08);
+            padding: 24px;
+            margin: 16px;
+        }
+
+        .option-item {
+            border: 2px solid #ffe0e0;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .option-item.active {
+            border-color: var(--primary-color);
+            background: rgba(255, 77, 79, 0.05);
+            box-shadow: 0 2px 8px rgba(255, 77, 79, 0.1);
+        }
+
+        .progress-container {
+            height: 4px;
+            background: #ffe0e0;
+        }
+
+        .control-bar {
+            background: white;
+            padding: 16px;
+            box-shadow: 0 -4px 12px rgba(255, 77, 79, 0.05);
+        }
+
+        .stat-modal .progress {
+            height: 8px;
+            border-radius: 4px;
+        }
+
+        #timerDisplay {
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+<div class="container-fluid vh-100 d-flex flex-column">
+    <!-- 状态栏 -->
+    <div class="status-bar d-flex justify-content-between align-items-center">
+        <div id="currentProgress">1/10</div>
+        <div id="timerDisplay">剩余时间 12:00</div>
+    </div>
+
+    <!-- 题目区域 -->
+    <main class="flex-grow-1 overflow-auto">
+        <div class="question-card">
+            <div class="text-secondary mb-3">单选题</div>
+            <h4 class="mb-4" style="line-height: 1.5; color: #333;">
+                新课程所倡导的教学与行为，教学不只是传递和执行的过程，而是（的选择。
+            </h4>
+            <div class="options">
+                <div class="option-item">A. 单向培养</div>
+                <div class="option-item">B. 关注学科发展</div>
+                <div class="option-item">C. 课程创生与开发</div>
+                <div class="option-item">D. 课程创生与开发</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 进度条 -->
+    <div class="progress-container">
+        <div class="progress-bar" style="width: 10%; height: 100%; background: var(--primary-color);"></div>
+    </div>
+
+    <!-- 控制栏 -->
+    <div class="control-bar d-flex justify-content-between">
+        <button class="btn btn-outline-primary">答题卡</button>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary" id="prevBtn" disabled>上一题</button>
+            <button class="btn btn-primary" id="nextBtn">下一题</button>
+        </div>
+    </div>
+
+    <!-- 统计弹窗 -->
+    <div class="modal fade" id="statModal">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body text-center">
+                    <h5 class="mb-4">答题统计</h5>
+                    <div class="row mb-4">
+                        <div class="col-6">
+                            <div class="h2 text-success">10%</div>
+                            <small class="text-muted">正确率</small>
+                        </div>
+                        <div class="col-6">
+                            <div class="h2 text-primary">03:00</div>
+                            <small class="text-muted">用时</small>
+                        </div>
+                    </div>
+                    <div class="progress stat-progress mb-4">
+                        <div class="progress-bar bg-success" style="width: 10%"></div>
+                        <div class="progress-bar bg-danger" style="width: 90%"></div>
+                    </div>
+                    <div class="d-flex justify-content-center gap-3">
+                        <span class="badge bg-success">正确 1</span>
+                        <span class="badge bg-danger">错误 9</span>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                    <button class="btn btn-primary">查看详情</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://s4.zstatic.net/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script>
+    // 题目数据（10题）
+    const questions = Array(10).fill().map((_,i) => ({
+        type: '单选题',
+        title: '新课程所倡导的教学与行为，教学不只是传递和执行的过程，而是（的选择。',
+        options: [
+            'A. 单向培养',
+            'B. 关注学科发展',
+            'C. 课程创生与开发',
+            'D. 课程创生与开发'
+        ],
+        answer: Math.floor(Math.random() * 4) // 随机正确答案
+    }));
+
+    // 系统状态
+    let currentQ = 0;
+    let userAnswers = new Array(10).fill(-1); // 初始未选答案
+    let startTime = Date.now();
+    let timer;
+
+    // 初始化计时器（3分钟）
+    function initTimer() {
+        let remaining = 180; // 3分钟
+        const formatTime = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
+
+        timer = setInterval(() => {
+            remaining--;
+            document.getElementById('timerDisplay').textContent = `剩余时间 ${formatTime(remaining)}`;
+            if(remaining <= 0) submitAnswer();
+        }, 1000);
+    }
+
+    // 更新界面状态
+    function updateView() {
+        // 更新进度
+        document.getElementById('currentProgress').textContent = `${currentQ + 1}/${questions.length}`;
+        document.querySelector('.progress-bar').style.width = `${((currentQ + 1)/questions.length)*100}%`;
+
+        // 更新按钮状态
+        document.getElementById('prevBtn').disabled = currentQ === 0;
+        document.getElementById('nextBtn').textContent = currentQ === questions.length - 1 ? '提交答案' : '下一题';
+
+        // 更新选项状态（无默认选中）
+        document.querySelectorAll('.option-item').forEach(opt => opt.classList.remove('active'));
+        if(userAnswers[currentQ] !== -1) {
+            document.querySelectorAll('.option-item')[userAnswers[currentQ]].classList.add('active');
+        }
+    }
+
+    // 提交答案处理
+    function submitAnswer() {
+        clearInterval(timer);
+        const timeUsed = Math.floor((Date.now() - startTime)/1000);
+        const correctCount = userAnswers.filter((ans, i) => ans === questions[i].answer).length;
+
+        // 更新统计弹窗
+        const statModal = new bootstrap.Modal('#statModal');
+        document.querySelector('#statModal .text-success').textContent = `${Math.round((correctCount/questions.length)*100)}%`;
+        document.querySelector('#statModal .text-primary').textContent =
+            `${Math.floor(timeUsed/60).toString().padStart(2,'0')}:${(timeUsed%60).toString().padStart(2,'0')}`;
+        document.querySelector('#statModal .bg-success').style.width = `${(correctCount/questions.length)*100}%`;
+        document.querySelector('#statModal .bg-danger').style.width = `${100 - (correctCount/questions.length)*100}%`;
+        document.querySelector('#statModal .badge.bg-success').textContent = `正确 ${correctCount}`;
+        document.querySelector('#statModal .badge.bg-danger').textContent = `错误 ${questions.length - correctCount}`;
+
+        statModal.show();
+    }
+
+    // 事件监听
+    document.getElementById('nextBtn').addEventListener('click', () => {
+        if(currentQ < questions.length - 1) {
+            currentQ++;
+            updateView();
+        } else {
+            submitAnswer();
+        }
+    });
+
+    document.getElementById('prevBtn').addEventListener('click', () => {
+        if(currentQ > 0) {
+            currentQ--;
+            updateView();
+        }
+    });
+
+    document.querySelectorAll('.option-item').forEach((opt, index) => {
+        opt.addEventListener('click', () => {
+            document.querySelectorAll('.option-item').forEach(o => o.classList.remove('active'));
+            opt.classList.add('active');
+            userAnswers[currentQ] = index;
+        });
+    });
+
+    // 初始化
+    initTimer();
+    updateView();
+</script>
+</body>
+</html>

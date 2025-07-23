@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>响应式高德地图示例</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        #mapContainer {
+            width: 100%;
+            height: 100vh; /* 全视口高度 */
+            position: relative;
+        }
+
+        /* 信息窗口响应式样式 */
+        .amap-info-content {
+            font-size: 14px;
+            padding: 12px !important;
+            min-width: 200px;
+        }
+
+        .info-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        /* 移动端优化 */
+        @media screen and (max-width: 768px) {
+            .amap-info-content {
+                font-size: 12px;
+                padding: 8px !important;
+            }
+
+            .info-title {
+                font-size: 14px;
+            }
+
+            /* 隐藏PC端复杂控件 */
+            .amap-toolbar {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+<body>
+<div id="mapContainer"></div>
+
+<script src="https://webapi.amap.com/maps?v=1.4.15&key=cd66485ba07ea4a2264ca0809d00bd19"></script>
+
+<script>
+    // 初始化地图函数
+    function initMap() {
+        // 设置为中国地理中心附近
+        const centerPosition = [104.114129, 37.550339];
+
+        // 初始化地图，设置缩放级别为4（全国范围）
+        const map = new AMap.Map('mapContainer', {
+            viewMode: "2D",
+            center: centerPosition,
+            zoom: 4, // 调整缩放级别
+            resizeEnable: true // 启用窗口尺寸变化响应
+        });
+
+        // 创建5公里半径的圆
+        const circle = new AMap.Circle({
+            center: centerPosition,
+            radius: 3000,
+            strokeColor: "#0099FF",
+            strokeOpacity: 0.5,
+            strokeWeight: 2,
+            fillColor: "#0099FF",
+            fillOpacity: 0.1
+        });
+
+        // 创建信息窗口
+        const infoWindow = new AMap.InfoWindow({
+            content: `<div class="info-title">当前区域</div>
+                     <div>坐标：${centerPosition.join(', ')}</div>
+                     <div>覆盖半径：3公里</div>`,
+            offset: new AMap.Pixel(0, -30)
+        });
+
+        // 添加标记点
+        const marker = new AMap.Marker({
+            position: centerPosition,
+            title: "中心位置",
+            map: map
+        });
+
+        // 自动适配视图 - 如果你希望显示全国地图，不要调用这个方法
+        // map.setFitView([circle, marker]);
+
+        // 事件绑定
+        marker.on('click', () => {
+            infoWindow.open(map, marker.getPosition());
+        });
+
+        // 窗口大小变化时自动适配
+        window.addEventListener('resize', () => {
+            // 如果你希望保持全国视图，不要在调整大小时重新适配视图
+            // map.setFitView([circle, marker]);
+        });
+    }
+
+    // 初始化执行
+    window.onload = initMap;
+</script>
+</body>
+</html>

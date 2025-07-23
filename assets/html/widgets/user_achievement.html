@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>户外成就系统</title>
+    <style>
+        :root {
+            --main-blue: #4A90E2;
+            --accent-orange: #FF6B6B;
+            --point-yellow: #FFD93D;
+        }
+
+        body {
+            background: linear-gradient(160deg, #F0F5FF 20%, #E6E9FF 100%);
+            min-height: 100vh;
+            padding: 12px;
+            font-family: 'Helvetica Neue', sans-serif;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 750px;
+            margin: 0 auto;
+            gap: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 滑动容器 */
+        .scroll-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+            padding-bottom: 8px;
+            margin: 0 -8px;
+        }
+        .scroll-container::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* 成就卡片组 */
+        .achievement-grid {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 8px;
+            padding: 0 8px 12px;
+        }
+        .achievement-card {
+            font-size: 12px;
+            flex: 0 0 90px;
+            min-width: 90px;
+            background: rgba(255,255,255,0.7);
+            backdrop-filter: blur(8px);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .achievement-card.locked {
+            opacity: 0.6;
+            position: relative;
+        }
+        .achievement-card.locked::after {
+            content: "🔒";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%,-50%);
+            font-size: 18px;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1));
+            animation: breath 1.5s ease-in-out infinite;
+        }
+
+        /* 积分面板 */
+        .points-panel {
+            flex: 0 0 100px;
+            min-width: 100px;
+            background: linear-gradient(135deg, #d3c2df 0%, #b44d4d 100%);
+            border-radius: 10px;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 12px rgba(74,144,226,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        .points-panel::before {
+            content: '⭐';
+            position: absolute;
+            top: -12px;
+            right: -12px;
+            font-size: 30px;
+            opacity: 0.2;
+            transform: rotate(30deg);
+        }
+        .points-panel::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 2px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            pointer-events: none;
+        }
+        .points-header h2 {
+            color: rgba(255,255,255,0.9);
+            font-size: 13px;
+            margin: 0 0 10px 0;
+        }
+        .points-value {
+            font-size: 20px;
+            color: #FFD93D;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            font-weight: 700;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* 修改后的奖品区 */
+        .rewards-grid {
+            display: flex;
+            gap: 10px;
+            padding: 0 8px 12px;
+        }
+        .reward-card {
+            flex: 0 0 120px;
+            min-width: 120px;
+            background: linear-gradient(135deg,
+            rgba(225, 78, 78, 0.9) 0%,  /* 淡蓝色渐变 */
+            rgba(225, 236, 240, 0.9) 100%);
+            border: 1px solid rgba(0,0,0,0.08);
+            backdrop-filter: blur(6px);
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .reward-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            /* background: conic-gradient(
+                #FF6B6B 0deg 60deg,
+                #FFD93D 60deg 180deg,
+                #4A90E2 180deg 240deg,
+                #32CC98 240deg 360deg
+            ); */
+            animation: rotate 12s linear infinite;
+            opacity: 0.08;
+            z-index: -1;
+        }
+        .reward-image {
+            width: 44px;
+            height: 44px;
+            margin: 0 auto 6px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        /* 按钮样式 */
+        .exchange-btn {
+            color: white;
+            border: none;
+            padding: 4px 12px;
+            border-radius: 14px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 80px;
+        }
+        .points-panel .exchange-btn {
+            background: linear-gradient(45deg, #FFD93D, #FFB347);
+            box-shadow: 0 2px 6px rgba(255,181,71,0.3);
+        }
+        .reward-card .exchange-btn {
+            background: linear-gradient(45deg, var(--main-blue), #6B52FF);
+        }
+
+        /* 动画 */
+        @keyframes breath {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+        @keyframes rotate {
+            100% { transform: rotate(360deg); }
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 480px) {
+            .container {
+                padding: 8px;
+            }
+            .achievement-card {
+                flex: 0 0 70px;
+                min-width: 70px;
+                padding: 8px;
+            }
+            .reward-card,
+            .points-panel {
+                flex: 0 0 50%;
+                min-width: 50%;
+            }
+            .points-header h2 {
+                font-size: 12px;
+            }
+            .points-value {
+                font-size: 18px;
+            }
+            .reward-image {
+                width: 40px;
+                height: 40px;
+            }
+            .reward-card h3 {
+                font-size: 13px;
+                margin: 4px 0;
+            }
+            .reward-card p {
+                font-size: 12px;
+                margin: 4px 0;
+            }
+            .exchange-btn {
+                width: 70px;
+                padding: 3px 8px;
+                font-size: 10px;
+            }
+        }
+
+        @media (max-width: 320px) {
+            .achievement-card {
+                flex: 0 0 60px;
+                min-width: 60px;
+                padding: 6px;
+            }
+            .achievement-card h3 {
+                display: none;
+            }
+            .reward-card,
+            .points-panel {
+                flex: 0 0 65%;
+                min-width: 65%;
+            }
+            .points-value {
+                font-size: 16px;
+            }
+            .reward-card h3 {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <!-- 成就卡片 -->
+    <div class="scroll-container">
+        <div class="achievement-grid">
+            <div class="achievement-card">
+                <div class="achievement-icon">🌱</div>
+                <h3>初出茅庐</h3>
+            </div>
+            <div class="achievement-card">
+                <div class="achievement-icon">🏃</div>
+                <h3>百公里挑战</h3>
+            </div>
+            <div class="achievement-card locked">
+                <div class="achievement-icon">📷</div>
+                <h3>摄影大师</h3>
+            </div>
+            <div class="achievement-card locked">
+                <div class="achievement-icon">⛰️</div>
+                <h3>登山达人</h3>
+            </div>
+        </div>
+    </div>
+
+    <!-- 积分和奖品区 -->
+    <div class="scroll-container">
+        <div class="rewards-grid">
+            <!-- 积分面板 -->
+            <div class="points-panel">
+                <div class="points-header">
+                    <h2>我的积分</h2>
+                    <div class="points-value">2560</div>
+                </div>
+                <button class="exchange-btn">兑换奖励</button>
+            </div>
+
+            <!-- 修改背景后的奖品卡片 -->
+            <div class="reward-card">
+                <div class="reward-image"></div>
+                <h3>旅行水杯</h3>
+                <p>500积分</p>
+                <button class="exchange-btn">立即兑换</button>
+            </div>
+            <div class="reward-card">
+                <div class="reward-image"></div>
+                <h3>登山杖</h3>
+                <p>1500积分</p>
+                <button class="exchange-btn">立即兑换</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll('.exchange-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const currentPoints = parseInt(document.querySelector('.points-value').textContent);
+            const requiredPoints = parseInt(this.parentElement.querySelector('p')?.textContent) || 0;
+
+            if(requiredPoints > 0) {
+                if(currentPoints >= requiredPoints) {
+                    this.style.background = 'linear-gradient(45deg, #32CC98, #4A90E2)';
+                    this.textContent = '兑换成功';
+                    document.querySelector('.points-value').textContent = currentPoints - requiredPoints;
+                } else {
+                    this.style.background = 'linear-gradient(45deg, #FF6B6B, #FFD93D)';
+                    this.textContent = '积分不足';
+                }
+            } else {
+                this.style.background = 'linear-gradient(45deg, #FFB347, #FFD93D)';
+                this.textContent = '查看奖品';
+            }
+
+            setTimeout(() => {
+                const isPointsPanel = this.closest('.points-panel');
+                this.style.background = isPointsPanel
+                    ? 'linear-gradient(45deg, #FFD93D, #FFB347)'
+                    : 'linear-gradient(45deg, #4A90E2, #6B52FF)';
+                this.textContent = isPointsPanel ? '兑换奖励' : '立即兑换';
+            }, 1500);
+        });
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <script src="https://lf-cdn.coze.cn/obj/unpkg/flow-platform/chat-app-sdk/1.2.0-beta.10/libs/cn/index.js"></script>
+<script>
+  new CozeWebSDK.WebChatClient({
+    config: {
+      bot_id: '7527187019618484259',
+    },
+    componentProps: {
+      title: 'Coze',
+    },
+    auth: {
+      type: 'token',
+      token: 'pat_OIESJaa0aNaS1933sqxmPjR16tQ6df2OHGhr81m4gB4CWznFestBXdwmJZF7l9IX',
+      onRefreshToken: function () {
+        return 'pat_OIESJaa0aNaS1933sqxmPjR16tQ6df2OHGhr81m4gB4CWznFestBXdwmJZF7l9IX'
+      }
+    }
+  });
+</script>
+</body>
+</html>
