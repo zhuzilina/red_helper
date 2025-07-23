@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'package:red_helper/pages/content_page/web_view/web_view.dart';
+import 'package:red_helper/pages/learn_page/learn_page.dart';
 // 引入自定义组件
-import '../content_page/reward_page/reward_task_page.dart';
 import 'widget/team_card.dart';
 import 'widget/strategy_card.dart';
 import 'widget/section_title.dart';
@@ -88,20 +88,15 @@ class _TripPageState extends State<TripPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton(
-        onPressed: _handleHelpPressed,
-        backgroundColor: Colors.transparent, // 移除默认背景色
-        elevation: 0, // 移除阴影
-        highlightElevation: 0, // 移除点击时阴影放大效果
-        splashColor: Colors.transparent, // 移除点击水波纹效果
-        child: SizedBox(
-          width: 60,
-          height: 80,
-          child: Image.asset('assets/images/points.png', fit: BoxFit.contain),
-        ),
+      floatingActionButton: Stack(
+        children: [
+          Positioned(
+            bottom: 280,
+            right: 2,
+            child: DigitaPsersonFloatViewHome(),
+          ),
+        ],
       ),
-
-      floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
@@ -113,22 +108,6 @@ class _TripPageState extends State<TripPage> {
                   height: 180,
                   child: ContentWidget(
                     assetPath: 'assets/html/widgets/map.html',
-                  ),
-                ),
-              ),
-            ),
-          ),
-
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            sliver: SliverToBoxAdapter(
-              child: SizedBox(
-                height: 240,
-                child: Padding(
-                  padding: EdgeInsets.all(10),
-                  child: Card(
-                    color: Theme.of(context).colorScheme.surface,
-                    child: AiInputWidget(),
                   ),
                 ),
               ),
@@ -181,14 +160,6 @@ class _TripPageState extends State<TripPage> {
           ),
         ],
       ),
-    );
-  }
-
-  void _handleHelpPressed() {
-    // 跳转到积分
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => TaskPage()),
     );
   }
 }

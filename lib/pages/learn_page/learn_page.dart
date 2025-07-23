@@ -7,7 +7,6 @@ import 'package:red_helper/pages/content_page/web_view/web_view_page.dart';
 
 import '../content_page/question/pk.dart';
 import '../content_page/question/question.dart';
-import '../content_page/reward_page/reward_task_page.dart';
 import 'widget/quiz/quiz_card.dart';
 import 'widget/book_grid/book_grid_item.dart';
 import 'widget/book_grid/more_button.dart';
@@ -131,34 +130,12 @@ class _LearnPageState extends State<LearnPage> {
           Positioned(
             bottom: 280,
             right: 2,
-            child: SizedBox(
-              width: 100,
-              child: Column(
-                children: [
-                  Image.asset('assets/images/digital_person.png'),
-                  Card(
-                    margin: EdgeInsets.fromLTRB(2, 0, 2, 2),
-                    color: Colors.white,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(4, 0, 0, 0),
-                      child: Text('你好呀，我是小红同学，有关于红色文化的问题都可以来问我哦🙂'),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            child: DigitaPsersonFloatViewHome(),
           ),
         ],
       ),
       body: CustomScrollView(
         slivers: [
-          // Ai输入组件
-          SliverPadding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            sliver: SliverToBoxAdapter(
-              child: SizedBox(height: 210, child: AiInputWidget()),
-            ),
-          ),
           // 答题卡片
           SliverPadding(
             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -216,35 +193,63 @@ class _LearnPageState extends State<LearnPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder:
-            (context) =>
-                type == 'daily'
-                    ? DailyQuizPage(title: null)
+        builder: (context) => type == 'daily'
+            ? DailyQuizPage(title: null)
+            : type == 'pk'
+            ? PKPage()
+            : ContentPage(
+                assetPath:
+                    'assets/html/pages/${type == 'daily'
+                        ? 'daily'
+                        : type == 'pk'
+                        ? 'pk'
+                        : 'leaderboard'}.html',
+                title: type == 'daily'
+                    ? '每日一答'
                     : type == 'pk'
-                    ? PKPage()
-                    : ContentPage(
-                      assetPath:
-                          'assets/html/pages/${type == 'daily'
-                              ? 'daily'
-                              : type == 'pk'
-                              ? 'pk'
-                              : 'leaderboard'}.html',
-                      title:
-                          type == 'daily'
-                              ? '每日一答'
-                              : type == 'pk'
-                              ? '答题PK'
-                              : '排行榜',
-                    ),
+                    ? '答题PK'
+                    : '排行榜',
+              ),
       ),
     );
   }
+}
 
-  void _handleHelpPressed() {
-    // 跳转到积分
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => TaskPage()),
+class DigitaPsersonFloatViewHome extends StatelessWidget {
+  const DigitaPsersonFloatViewHome({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => showModalBottomSheet(
+        isScrollControlled: true,
+        context: context,
+        builder: (BuildContext context) {
+          return LayoutBuilder(
+            builder: (context, constraints) => SizedBox(
+              width: constraints.maxWidth,
+              height: constraints.maxHeight * 0.9,
+              child: ClipRRect(child: CozePage(callMsg: '')),
+            ),
+          );
+        },
+      ),
+      child: SizedBox(
+        width: 100,
+        child: Column(
+          children: [
+            Image.asset('assets/images/digital_person.png'),
+            Card(
+              margin: EdgeInsets.fromLTRB(2, 0, 2, 2),
+              color: Colors.white,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(4, 0, 0, 0),
+                child: Text('你好呀，我是小红同学，有红色文化相关的问题都可以来问我哦🙂'),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -319,11 +324,12 @@ class _AiInputWidgetState extends State<AiInputWidget> {
                           padding: EdgeInsets.fromLTRB(10, 2, 2, 2),
                           child: Text(
                             '讲解一下遵义会议',
-                            style: Theme.of(
-                              context,
-                            ).textTheme.labelSmall!.copyWith(
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
+                            style: Theme.of(context).textTheme.labelSmall!
+                                .copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
+                                ),
                           ),
                         ),
                       ),
@@ -341,11 +347,10 @@ class _AiInputWidgetState extends State<AiInputWidget> {
                         padding: EdgeInsets.fromLTRB(10, 2, 2, 2),
                         child: Text(
                           '二十大报告的主要内容总结',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.labelSmall!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall!
+                              .copyWith(
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                         ),
                       ),
                     ),
@@ -362,11 +367,10 @@ class _AiInputWidgetState extends State<AiInputWidget> {
                         padding: EdgeInsets.fromLTRB(10, 2, 2, 2),
                         child: Text(
                           '介绍一下江姐',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.labelSmall!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall!
+                              .copyWith(
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                         ),
                       ),
                     ),
