@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:red_helper/pages/content_page/web_view/web_view.dart';
+import 'package:red_helper/pages/learn_page/digita_pserson_float_view_home.dart';
 import 'package:red_helper/pages/learn_page/learn_page.dart';
 // 引入自定义组件
 import 'widget/team_card.dart';
@@ -93,7 +94,10 @@ class _TripPageState extends State<TripPage> {
           Positioned(
             bottom: 280,
             right: 2,
-            child: DigitaPsersonFloatViewHome(),
+            child: DigitaPsersonFloatViewHome(
+              suggestions: [],
+              onTapSuggestion: () {},
+            ),
           ),
         ],
       ),
@@ -227,11 +231,10 @@ class _AiInputWidgetState extends State<AiInputWidget> {
                         padding: EdgeInsets.fromLTRB(10, 2, 2, 2),
                         child: Text(
                           '规划一下去遵义旅游的行程',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.labelSmall!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall!
+                              .copyWith(
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                         ),
                       ),
                     ),
@@ -248,11 +251,10 @@ class _AiInputWidgetState extends State<AiInputWidget> {
                         padding: EdgeInsets.fromLTRB(10, 2, 2, 2),
                         child: Text(
                           '最近热门',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.labelSmall!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall!
+                              .copyWith(
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                         ),
                       ),
                     ),
@@ -269,11 +271,10 @@ class _AiInputWidgetState extends State<AiInputWidget> {
                         padding: EdgeInsets.fromLTRB(10, 2, 2, 2),
                         child: Text(
                           '去红色场馆参观的注意事项',
-                          style: Theme.of(
-                            context,
-                          ).textTheme.labelSmall!.copyWith(
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall!
+                              .copyWith(
+                                color: Theme.of(context).colorScheme.onSurface,
+                              ),
                         ),
                       ),
                     ),

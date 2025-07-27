@@ -50,6 +50,10 @@
       <action android:name="android.intent.action.VIEW" />
       <data android:scheme="https" />
     </intent>
+    <!-- TTS_SERVICE -->
+    <intent>
+    <action android:name="android.intent.action.TTS_SERVICE" />
+  </intent>
         
     </queries>
 </manifest>

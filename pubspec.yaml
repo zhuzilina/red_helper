@@ -52,6 +52,8 @@ dependencies:
   shelf: ^1.4.2
   crypto: ^3.0.6
   url_launcher: ^6.3.2
+  path_provider: ^2.1.5
+  flutter_tts: ^4.2.3
 
 dev_dependencies:
   flutter_test:
@@ -82,6 +84,8 @@ flutter:
     - assets/images/
     - assets/html/widgets/
     - assets/html/pages/
+    - assets/books/
+    - assets/articles/
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

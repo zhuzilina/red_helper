@@ -1,9 +1,9 @@
 // widgets/information_card.dart
 import 'package:flutter/material.dart';
-import 'package:red_helper/pages/content_page/web_view/web_view_page.dart';
+import 'package:red_helper/pages/content_page/article_page/article_page.dart';
 
 class InformationCard extends StatelessWidget {
-  final List<Map<String, String>> newsItems;
+  final List<Map<String, dynamic>> newsItems;
   final ValueChanged<int>? onCategoryChanged;
   final int selectedCategoryIndex;
 
@@ -30,7 +30,7 @@ class InformationCard extends StatelessWidget {
   }
 
   Widget _buildCategoryMenu(BuildContext context) {
-    final categories = ['时政', '家国', '生活', '人文'];
+    final categories = ['推荐', '党史', '理论'];
 
     return SizedBox(
       height: 40,
@@ -38,34 +38,28 @@ class InformationCard extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
         separatorBuilder: (_, __) => const SizedBox(width: 20),
-        itemBuilder:
-            (context, index) => GestureDetector(
-              onTap: () => onCategoryChanged?.call(index),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 15,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color:
-                      selectedCategoryIndex == index
-                          ? Theme.of(context).colorScheme.primary
-                          : Colors.transparent,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  categories[index],
-                  style: TextStyle(
-                    fontSize: selectedCategoryIndex == index ? 14 : 12,
-                    color:
-                        selectedCategoryIndex == index
-                            ? Theme.of(context).colorScheme.onPrimary
-                            : Theme.of(context).colorScheme.onSurface,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
+        itemBuilder: (context, index) => GestureDetector(
+          onTap: () => onCategoryChanged?.call(index),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+            decoration: BoxDecoration(
+              color: selectedCategoryIndex == index
+                  ? Theme.of(context).colorScheme.primary
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              categories[index],
+              style: TextStyle(
+                fontSize: selectedCategoryIndex == index ? 14 : 12,
+                color: selectedCategoryIndex == index
+                    ? Theme.of(context).colorScheme.onPrimary
+                    : Theme.of(context).colorScheme.onSurface,
+                fontWeight: FontWeight.w500,
               ),
             ),
+          ),
+        ),
       ),
     );
   }
@@ -82,7 +76,7 @@ class InformationCard extends StatelessWidget {
 }
 
 class _NewsItemCard extends StatelessWidget {
-  final Map<String, String> item;
+  final Map<String, dynamic> item;
 
   const _NewsItemCard({required this.item});
 
@@ -94,11 +88,11 @@ class _NewsItemCard extends StatelessWidget {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder:
-                (context) => ContentPage(
-                  assetPath: 'assets/html/pages/info.html',
-                  title: '学习助手',
-                ),
+            builder: (context) => MarkdownParserPage(
+              title: item['title']!,
+              assetPath: item['path']!,
+              suggestions: item['suggestions'],
+            ),
           ),
         );
       },

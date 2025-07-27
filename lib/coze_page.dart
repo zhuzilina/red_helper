@@ -1,132 +1,23 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
-import 'dart:math';
 import 'dart:typed_data';
-import 'package:cached_network_image/cached_network_image.dart';
-import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http_parser/http_parser.dart';
-import 'package:red_helper/env.dart';
+import 'package:provider/provider.dart';
+import 'package:red_helper/cognitive_switch_widget.dart';
+import 'package:red_helper/coze_stream_service.dart';
+import 'package:red_helper/loading_animation.dart';
+import 'package:red_helper/msg_card.dart';
+import 'package:red_helper/providers/msg_state.dart';
 import 'package:red_helper/repository/models/msg.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
-import 'package:shelf/shelf.dart' as shelf;
-import 'package:shelf/shelf_io.dart' as io;
-import 'package:url_launcher/url_launcher.dart';
-
-class LoadingAnimation extends StatefulWidget {
-  final bool isLoading;
-  final String? loadingText;
-  final double size;
-
-  const LoadingAnimation({
-    super.key,
-    required this.isLoading,
-    this.loadingText,
-    this.size = 40.0,
-  });
-
-  @override
-  State<LoadingAnimation> createState() => _LoadingAnimationState();
-}
-
-class _LoadingAnimationState extends State<LoadingAnimation>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _fadeController;
-
-  @override
-  void initState() {
-    super.initState();
-    _fadeController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 300),
-    );
-
-    // 根据初始加载状态设置动画值
-    if (widget.isLoading) {
-      _fadeController.forward();
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant LoadingAnimation oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    // 监听加载状态变化并控制动画
-    if (widget.isLoading != oldWidget.isLoading) {
-      if (widget.isLoading) {
-        _fadeController.forward();
-      } else {
-        _fadeController.reverse();
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _fadeController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (!widget.isLoading) return const SizedBox.shrink();
-    return FadeTransition(
-      opacity: _fadeController,
-      child: Row(
-        children: [
-          SizedBox(width: 10),
-          Card(
-            color: Theme.of(context).colorScheme.surface,
-            child: Container(
-              padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: widget.loadingText != null
-                  ? Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        CircularProgressIndicator(
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Theme.of(context).colorScheme.primary,
-                          ),
-                          strokeWidth: 3.0,
-                          backgroundColor: Theme.of(
-                            context,
-                          ).colorScheme.surface,
-                        ),
-                        const SizedBox(height: 12.0),
-                        SelectableText(
-                          widget.loadingText!,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.onSurface,
-                            fontSize: 14.0,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    )
-                  : CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        Theme.of(context).colorScheme.primary,
-                      ),
-                      strokeWidth: 3.0,
-                      backgroundColor: Theme.of(context).colorScheme.surface,
-                    ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class CozePage extends StatefulWidget {
-  const CozePage({super.key, required this.callMsg});
+  const CozePage({super.key, required this.callMsg, this.autoFocus = true});
   final String callMsg;
-
+  final bool autoFocus;
   @override
   State<StatefulWidget> createState() {
     return _CozePage();
@@ -134,16 +25,21 @@ class CozePage extends StatefulWidget {
 }
 
 class _CozePage extends State<CozePage> {
+  late final appState;
   // 控制器
   final TextEditingController inputController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final ImagePicker _picker = ImagePicker();
+  final FlutterTts _flutterTts = FlutterTts();
   // 信号量
   bool isLoading = true;
   bool isSend = false;
+  bool isDeep = false;
+  bool _isSpeaking = false;
+  List<Msg> messages = [];
   // 值-消息文本
   Msg? msg;
-  List<Msg> messages = [];
+  String? lastMsg;
   // 值-消息图片
   Uint8List? _selectedImage;
   String? imageId;
@@ -224,10 +120,12 @@ class _CozePage extends State<CozePage> {
           final chat = event.data as CozeChatCompleted;
           print('聊天完成，耗时: ${chat.completedAt - chat.createdAt}ms');
           print('完整回答: ${service.fullAnswer}');
+          lastMsg = service.fullAnswer;
           // 最终状态更新
           setState(() {
             isLoading = false;
             isSend = false;
+            _speak();
           });
           break;
 
@@ -259,7 +157,7 @@ class _CozePage extends State<CozePage> {
       setState(() {
         isLoading = false;
         isSend = false;
-        _saveMessages();
+        appState.saveMessages();
       });
     });
     // var msgItem = Msg(isUser: true, msg: '');
@@ -310,36 +208,11 @@ class _CozePage extends State<CozePage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
         _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-        // 如果你想要平滑滚动，可以使用下面的代码
-        // _scrollController.animateTo(
-        //   _scrollController.position.maxScrollExtent,
-        //   duration: Duration(milliseconds: 300),
-        //   curve: Curves.easeOut,
-        // );
       }
     });
   }
 
   // 异步方法
-  // 缓存方法
-  Future<void> _loadMessages() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString('messages');
-    if (jsonString != null) {
-      final List<dynamic> jsonList = json.decode(jsonString);
-      setState(() {
-        messages = jsonList.map((json) => Msg.fromJson(json)).toList();
-        _scrollToBottom();
-      });
-    }
-  }
-
-  // 保存数据到缓存
-  Future<void> _saveMessages() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonList = messages.map((msg) => msg.toJson()).toList();
-    prefs.setString('messages', json.encode(jsonList));
-  }
 
   // 获取图片
   Future<void> _pickImageFromGallery() async {
@@ -392,30 +265,78 @@ class _CozePage extends State<CozePage> {
     }
   }
 
-  Future<Map<String, dynamic>> sendMessage(String msg, String? fileId) async {
-    var url = Uri.parse('http://121.36.87.174:3000/?msg=$msg');
-    if (fileId != null) {
-      url = Uri.parse('http://121.36.87.174:3000/?msg=$msg&file_id=$fileId');
-    }
-    try {
-      print('开始发送');
-      var response = await http.get(url);
-      if (response.statusCode == 200) {
-        var jsonResponse = jsonDecode(response.body);
-        return jsonResponse;
-      } else {
-        throw ('请求失败:${response.body}');
-      }
-    } catch (e) {
-      throw ("发生了错误:$e");
+  // 语音合成
+  Future<void> _initTTS() async {
+    // ... 其他设置（语言、语速等）
+    await _flutterTts.setLanguage("zh-CN");
+    await _flutterTts.setSpeechRate(0.6);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.setPitch(1.0);
+    // 当朗读完成时触发
+    _flutterTts.setCompletionHandler(() {
+      setState(() {
+        _isSpeaking = false; // 朗读完成后更新状态为未朗读
+      });
+    });
+
+    // 添加错误处理回调
+    _flutterTts.setErrorHandler((msg) {
+      setState(() {
+        _isSpeaking = false;
+      });
+    });
+  }
+
+  // 朗读文本
+  Future<void> _speak() async {
+    if (lastMsg != null && lastMsg!.isNotEmpty) {
+      setState(() {
+        _isSpeaking = true;
+      });
+      await _flutterTts.speak(lastMsg!);
     }
   }
+
+  // 停止朗读
+  Future<void> _stop() async {
+    await _flutterTts.stop();
+    setState(() {
+      _isSpeaking = false;
+    });
+  }
+
+  // Future<Map<String, dynamic>> sendMessage(String msg, String? fileId) async {
+  //   var url = Uri.parse('http://121.36.87.174:3000/?msg=$msg');
+  //   if (fileId != null) {
+  //     url = Uri.parse('http://121.36.87.174:3000/?msg=$msg&file_id=$fileId');
+  //   }
+  //   try {
+  //     print('开始发送');
+  //     var response = await http.get(url);
+  //     if (response.statusCode == 200) {
+  //       var jsonResponse = jsonDecode(response.body);
+  //       return jsonResponse;
+  //     } else {
+  //       throw ('请求失败:${response.body}');
+  //     }
+  //   } catch (e) {
+  //     throw ("发生了错误:$e");
+  //   }
+  // }
 
   @override
   void initState() {
     super.initState();
     inputController.text = widget.callMsg;
-    _loadMessages();
+    _initTTS();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    appState = Provider.of<MsgState>(context);
+    messages = appState.messages;
+    _scrollToBottom();
   }
 
   @override
@@ -456,11 +377,43 @@ class _CozePage extends State<CozePage> {
                 mainAxisSize: MainAxisSize.max,
                 children: [
                   _selectedImage == null
-                      ? TextButton(
-                          onPressed: () {
+                      ? GestureDetector(
+                          onTap: () {
                             _handleAddPicture();
                           },
-                          child: Text('添加图片'),
+                          child: Card(
+                            // 根据状态改变卡片样式
+                            color: Theme.of(context).colorScheme.surface,
+                            elevation: 4,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide.none,
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.image,
+                                    size: 28,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.secondaryContainer,
+                                  ),
+                                  Text(
+                                    '添加图片',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.normal,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.secondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                         )
                       : SizedBox(
                           height: 60,
@@ -480,6 +433,8 @@ class _CozePage extends State<CozePage> {
                             ],
                           ),
                         ),
+
+                  CognitiveSwitchWidget(),
                 ],
               ),
             ),
@@ -494,7 +449,7 @@ class _CozePage extends State<CozePage> {
                     width: constraints.maxWidth * 0.9,
                     child: TextField(
                       controller: inputController,
-                      autofocus: true,
+                      autofocus: widget.autoFocus,
                       onSubmitted: (value) {
                         _handleSend();
                       },
@@ -523,821 +478,132 @@ class _CozePage extends State<CozePage> {
   }
 }
 
-class MsgCard extends StatefulWidget {
-  const MsgCard({
-    super.key,
-    required this.isUserType,
-    required this.msg,
-    required this.image,
-    required this.width,
-  });
-  final bool isUserType;
-  final String msg;
-  final Uint8List? image;
-  final double width;
+class QuickStart extends StatefulWidget {
+  const QuickStart({super.key, required this.callMsg, required this.callback});
+  final String callMsg;
+  final Function() callback;
 
   @override
-  State<MsgCard> createState() => _MsgCardState();
+  State<StatefulWidget> createState() => _QuickStart();
 }
 
-class _MsgCardState extends State<MsgCard> {
-  // late final WebViewController _controller;
+class _QuickStart extends State<QuickStart> {
+  final int standLen = 600;
+  String loadingLabel = '加载中';
+  // 信号量
+  bool isLoading = true;
+  bool isSend = false;
+  bool isOk = false;
+  // 值-消息文本
+  Msg? msg;
+  // 保存Stream订阅，防止泄漏
+  StreamSubscription? _streamSubscription;
+  // 标记是否已经处理过，防止重复执行
+  bool _hasProcessed = false;
 
-  // @override
-  // void initState() {
-  //   super.initState();
-  //   if (!widget.isUserType) {
-  //     _controller =
-  //         WebViewController()
-  //           ..setJavaScriptMode(JavaScriptMode.disabled)
-  //           ..loadHtmlString(widget.msg);
-  //   }
-  // }
+  Future<bool> _handleSend() async {
+    final message = widget.callMsg;
+    if (message.isEmpty) return isOk;
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: widget.isUserType
-          ? MainAxisAlignment.end
-          : MainAxisAlignment.start,
-      children: [
-        SizedBox(width: 7),
-        widget.isUserType
-            ? Card(
-                color: widget.isUserType
-                    ? Theme.of(context).colorScheme.surfaceContainer
-                    : Theme.of(context).colorScheme.surface,
-                child: Padding(
-                  padding: EdgeInsets.all(7),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      widget.image != null
-                          ? SizedBox(
-                              width: widget.width * 0.6,
-                              child: Image.memory(
-                                widget.image!,
-                                fit: BoxFit.cover,
-                              ),
-                            )
-                          : SizedBox(height: 1),
-                      ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: widget.width * 0.7,
-                        ),
-                        child: SelectableText(widget.msg),
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            : Card(
-                child: SizedBox(
-                  width: widget.width * 0.95,
-                  child: MarkdownCompleteWidget(content: widget.msg),
-                ),
-              ),
-      ],
-    );
-  }
-}
+    // 创建发送信号控制状态
+    setState(() {
+      isLoading = true;
+      isSend = true;
+    });
 
-class MarkdownCompleteWidget extends StatelessWidget {
-  final String content;
+    final service = CozeStreamService(msg: message);
+    print('创建流订阅...');
 
-  const MarkdownCompleteWidget({super.key, required this.content});
-
-  // 解析整个文档为Widget列表
-  List<Widget> _parseDocument() {
-    final widgets = <Widget>[];
-    // 分割各个###标题部分
-    final sections = content.split(RegExp(r'\n### '));
-
-    // 处理标题前的内容
-    if (sections.isNotEmpty && sections[0].isNotEmpty) {
-      widgets.add(_parseContentBlock(sections[0]));
-      widgets.add(const SizedBox(height: 12));
+    // 取消之前的订阅（如果存在）
+    if (_streamSubscription != null) {
+      await _streamSubscription!.cancel();
     }
 
-    // 处理每个标题区块
-    for (var i = 1; i < sections.length; i++) {
-      final section = sections[i];
-      if (section.isEmpty) continue;
-
-      // 分割标题和内容
-      final firstNewlineIndex = section.indexOf('\n');
-      if (firstNewlineIndex == -1) {
-        widgets.add(_buildHeading(section));
-        continue;
+    _streamSubscription = service.sendStreamRequest().listen((event) {
+      print('收到事件: ${event.type}');
+      final currentLen = service.fullAnswer.length;
+      if (currentLen > 50) {
+        setState(() {
+          loadingLabel =
+              '${((currentLen / standLen) * 100 >= 100 ? 100 : (currentLen / standLen) * 100).toStringAsFixed(1)}%';
+        });
       }
+    });
 
-      final title = section.substring(0, firstNewlineIndex);
-      final content = section.substring(firstNewlineIndex + 1);
+    _streamSubscription!.onDone(() async {
+      if (!mounted) return;
 
-      widgets.add(_buildHeading(title));
-      widgets.add(_parseContentBlock(content));
-      widgets.add(const SizedBox(height: 12));
-    }
+      final Msg botMsg = Msg(isUser: false, msg: service.fullAnswer);
+      final Msg userMsg = Msg(isUser: true, msg: widget.callMsg);
 
-    return widgets;
-  }
-
-  // 构建标题Widget
-  Widget _buildHeading(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.bold,
-          color: Color(0xFF8B0000),
-          letterSpacing: 0.5,
-        ),
-      ),
-    );
-  }
-
-  // 解析内容块（处理列表、图片和普通文本）
-  Widget _parseContentBlock(String content) {
-    // 按行分割内容
-    final lines = content.split('\n');
-    final widgets = <Widget>[];
-    List<Widget>? listItems; // 用于收集列表项
-
-    for (final line in lines) {
-      final trimmedLine = line.trim();
-      if (trimmedLine.isEmpty) {
-        // 空行：如果正在处理列表，则结束列表
-        if (listItems != null) {
-          widgets.add(_buildList(listItems));
-          listItems = null;
-        }
-        widgets.add(const SizedBox(height: 6));
-        continue;
-      }
-
-      // 检查是否是图片（![描述](url)格式）
-      final imageMatch = RegExp(r'!\[(.*?)\]\((.*?)\)').firstMatch(trimmedLine);
-      if (imageMatch != null) {
-        // 如果正在处理列表，则先结束列表
-        if (listItems != null) {
-          widgets.add(_buildList(listItems));
-          listItems = null;
-        }
-
-        final altText = imageMatch.group(1) ?? '图片';
-        final imageUrl = imageMatch.group(2) ?? '';
-
-        widgets.add(
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            child: _buildImageWidget(imageUrl, altText),
-          ),
-        );
-        continue;
-      }
-
-      // 检查是否是列表项（以-开头）
-      if (trimmedLine.startsWith('- ')) {
-        final textContent = trimmedLine.substring(2).trim();
-        // 如果不在列表中，开始新列表
-        if (listItems == null) {
-          listItems = [];
-        }
-        // 解析列表项中的加粗文本并添加到列表
-        listItems.add(_parseRichText(textContent));
-      } else {
-        // 普通文本：如果正在处理列表，则先结束列表
-        if (listItems != null) {
-          widgets.add(_buildList(listItems));
-          listItems = null;
-        }
-        // 解析普通文本中的加粗部分
-        widgets.add(
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12.0),
-            child: _parseRichText(trimmedLine),
-          ),
-        );
-      }
-    }
-
-    // 处理剩余的列表项
-    if (listItems != null) {
-      widgets.add(_buildList(listItems));
-    }
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: widgets,
-    );
-  }
-
-  // 构建列表Widget
-  Widget _buildList(List<Widget> items) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: items.map((item) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 8.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '•',
-                  style: TextStyle(color: Color(0xFF8B0000), fontSize: 16),
-                  textAlign: TextAlign.start,
-                ),
-                const SizedBox(width: 8),
-                Expanded(child: item),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  // 构建图片Widget
-  Widget _buildImageWidget(String url, String altText) {
-    print('url 这个url:$url');
-    return Column(
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8.0),
-          child: CachedNetworkImage(
-            imageUrl: url,
-            placeholder: (context, url) => const AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Center(child: CircularProgressIndicator()),
-            ),
-            errorWidget: (context, url, error) => AspectRatio(
-              aspectRatio: 16 / 9,
-              child: Container(
-                color: Colors.grey[200],
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error, color: Colors.red, size: 48),
-                    const SizedBox(height: 8),
-                    Text(
-                      '无法加载图片: $altText',
-                      style: const TextStyle(color: Colors.grey),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: 240,
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(top: 8.0),
-          child: Text(
-            altText,
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // 解析文本中的加粗部分（**内容**）
-  Widget _parseRichText(String text) {
-    final spans = <TextSpan>[];
-    final regex = RegExp(r'\*\*(.*?)\*\*');
-    int lastIndex = 0;
-
-    // 查找所有加粗文本并构建TextSpan
-    for (final match in regex.allMatches(text)) {
-      if (match.start > lastIndex) {
-        spans.add(
-          TextSpan(
-            text: text.substring(lastIndex, match.start),
-            style: const TextStyle(
-              fontSize: 16,
-              height: 1.6,
-              color: Colors.black87,
-            ),
-          ),
-        );
-      }
-
-      // 添加加粗文本
-      spans.add(
-        TextSpan(
-          text: match.group(1),
-          style: const TextStyle(
-            fontSize: 16,
-            height: 1.6,
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      );
-
-      lastIndex = match.end;
-    }
-
-    // 添加剩余文本
-    if (lastIndex < text.length) {
-      spans.add(
-        TextSpan(
-          text: text.substring(lastIndex),
-          style: const TextStyle(
-            fontSize: 16,
-            height: 1.6,
-            color: Colors.black87,
-          ),
-        ),
-      );
-    }
-
-    return RichText(text: TextSpan(children: spans));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            spreadRadius: 2,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: _parseDocument(),
-      ),
-    );
-  }
-}
-
-// 定义事件类型枚举
-enum CozeEventType {
-  conversationMessageDelta,
-  conversationMessageCompleted,
-  conversationChatCompleted,
-  done,
-  unknown,
-}
-
-// 消息数据模型
-class CozeMessage {
-  final String id;
-  final String conversationId;
-  final String botId;
-  final String role;
-  final String type;
-  final String content;
-  final String contentType;
-  final String chatId;
-  final String sectionId;
-  final int? createdAt;
-  final int? updatedAt;
-
-  CozeMessage({
-    required this.id,
-    required this.conversationId,
-    required this.botId,
-    required this.role,
-    required this.type,
-    required this.content,
-    required this.contentType,
-    required this.chatId,
-    required this.sectionId,
-    this.createdAt,
-    this.updatedAt,
-  });
-
-  factory CozeMessage.fromJson(Map<String, dynamic> json) {
-    return CozeMessage(
-      id: json['id'] ?? '',
-      conversationId: json['conversation_id'] ?? '',
-      botId: json['bot_id'] ?? '',
-      role: json['role'] ?? '',
-      type: json['type'] ?? '',
-      content: json['content'] ?? '',
-      contentType: json['content_type'] ?? '',
-      chatId: json['chat_id'] ?? '',
-      sectionId: json['section_id'] ?? '',
-      createdAt: json['created_at'] as int?,
-      updatedAt: json['updated_at'] as int?,
-    );
-  }
-}
-
-// 聊天完成数据模型
-class CozeChatCompleted {
-  final String id;
-  final String conversationId;
-  final String botId;
-  final int createdAt;
-  final int completedAt;
-  final Map<String, dynamic> lastError;
-  final String status;
-  final Map<String, dynamic> usage;
-  final String sectionId;
-
-  CozeChatCompleted({
-    required this.id,
-    required this.conversationId,
-    required this.botId,
-    required this.createdAt,
-    required this.completedAt,
-    required this.lastError,
-    required this.status,
-    required this.usage,
-    required this.sectionId,
-  });
-
-  factory CozeChatCompleted.fromJson(Map<String, dynamic> json) {
-    return CozeChatCompleted(
-      id: json['id'] ?? '',
-      conversationId: json['conversation_id'] ?? '',
-      botId: json['bot_id'] ?? '',
-      createdAt: json['created_at'] ?? 0,
-      completedAt: json['completed_at'] ?? 0,
-      lastError: json['last_error'] ?? {},
-      status: json['status'] ?? '',
-      usage: json['usage'] ?? {},
-      sectionId: json['section_id'] ?? '',
-    );
-  }
-}
-
-// 解析后的事件数据
-class CozeStreamEvent {
-  final CozeEventType type;
-  final dynamic data;
-
-  CozeStreamEvent({required this.type, this.data});
-}
-
-class CozeStreamService {
-  final String apiUrl = 'https://api.coze.cn/v3/chat';
-  final OAuthService _oAuthService;
-  final String msg;
-
-  // 用于保存当前事件类型，因为event和data是分开的行
-  CozeEventType? _currentEventType;
-  // 用于收集完整的回答内容
-  String _fullAnswer = '';
-
-  CozeStreamService({required this.msg, OAuthService? oauthService})
-    : _oAuthService = oauthService ?? OAuthService();
-
-  // 发送请求并返回事件流
-  Stream<CozeStreamEvent> sendStreamRequest() async* {
-    try {
-      final token = await _oAuthService.getAccessToken();
-      print('开始发送请求到: $apiUrl');
-      final requestBody = jsonEncode({
-        "bot_id": "7527187019618484259",
-        "user_id": "123456789",
-        "stream": true,
-        "additional_messages": [
-          {
-            "content_type": "text",
-            "role": "user",
-            "type": "question",
-            "content": msg,
-          },
-        ],
-        "parameters": {},
+      bool ok = false;
+      setState(() {
+        isLoading = false;
+        ok = Provider.of<MsgState>(
+          context,
+          listen: false,
+        ).addMessage(botMsg, userMsg);
       });
 
-      final request = http.Request('POST', Uri.parse(apiUrl))
-        ..headers['Authorization'] = 'Bearer $token'
-        ..headers['Content-Type'] = 'application/json'
-        ..body = requestBody;
+      // 立即检查mounted，避免setState后销毁
+      if (!mounted) return;
 
-      print('请求已发送，等待响应...');
-      final response = await http.Client().send(request);
-
-      print('收到响应，状态码: ${response.statusCode}');
-      print('开始处理响应流...');
-
-      // 按行解析流数据
-      await for (final chunk in response.stream.transform(utf8.decoder)) {
-        print('收到数据块: ${chunk.length} 字符');
-
-        // 分割每一行
-        final lines = chunk.split('\n');
-        print('数据块分割为 ${lines.length} 行');
-
-        for (final line in lines) {
-          final trimmedLine = line.trim();
-          if (trimmedLine.isEmpty) {
-            print('跳过空行');
-            continue;
-          }
-
-          print('处理行: $trimmedLine');
-          final event = _parseLine(trimmedLine);
-
-          if (event != null) {
-            print('解析到事件: ${event.type}');
-
-            // 累积内容
-            if (event.type == CozeEventType.conversationMessageDelta &&
-                event.data is CozeMessage) {
-              _fullAnswer += (event.data as CozeMessage).content;
-              print('当前累积内容: $_fullAnswer');
-            }
-
-            yield event;
-          } else {
-            print('无法解析行: $trimmedLine');
-          }
-        }
+      if (ok) {
+        _pushPage(); // 现在导航在安全上下文中
       }
+    });
 
-      print('响应流处理完成');
-    } catch (e) {
-      print('请求出错: $e');
-      // 抛出错误，让订阅者知道
-      throw e;
-    }
-  }
-
-  // 解析单行数据
-  CozeStreamEvent? _parseLine(String line) {
-    try {
-      // 处理事件行
-      if (line.startsWith('event:')) {
-        final eventTypeStr = line.substring(6).trim();
-        _currentEventType = _parseEventType(eventTypeStr);
-        // 事件行本身不产生事件，等待后续data行
-        return null;
+    _streamSubscription!.onError((error) {
+      print('发生错误: $error');
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+          isSend = false;
+        });
       }
+      _streamSubscription?.cancel();
+    });
 
-      // 处理数据行
-      if (line.startsWith('data:')) {
-        if (_currentEventType == null) {
-          print('收到data但没有对应的event，忽略此行');
-          return null;
-        }
+    return isOk;
+  }
 
-        final dataStr = line.substring(5).trim();
-        dynamic data;
-
-        if (_currentEventType != CozeEventType.done) {
-          try {
-            final jsonData = jsonDecode(dataStr);
-
-            // 根据事件类型解析不同的数据结构
-            switch (_currentEventType!) {
-              case CozeEventType.conversationMessageDelta:
-              case CozeEventType.conversationMessageCompleted:
-                data = CozeMessage.fromJson(jsonData);
-                break;
-              case CozeEventType.conversationChatCompleted:
-                data = CozeChatCompleted.fromJson(jsonData);
-                break;
-              default:
-                data = jsonData;
-            }
-          } catch (e) {
-            print('解析data出错: $e, 原始数据: $dataStr');
-            data = dataStr;
-          }
-        } else {
-          data = dataStr;
-        }
-
-        // 创建事件并重置当前事件类型
-        final event = CozeStreamEvent(type: _currentEventType!, data: data);
-        _currentEventType = null;
-        return event;
-      }
-
-      // 既不是event也不是data的行
-      return null;
-    } catch (e) {
-      print('解析行出错: $e, 行内容: $line');
-      return null;
+  void quickStart() async {
+    if (widget.callMsg.isNotEmpty && !_hasProcessed) {
+      _hasProcessed = true; // 标记为已处理，防止重复执行
+      await _handleSend();
     }
   }
 
-  // 转换事件类型字符串为枚举
-  CozeEventType _parseEventType(String eventTypeStr) {
-    switch (eventTypeStr) {
-      case 'conversation.message.delta':
-        return CozeEventType.conversationMessageDelta;
-      case 'conversation.message.completed':
-        return CozeEventType.conversationMessageCompleted;
-      case 'conversation.chat.completed':
-        return CozeEventType.conversationChatCompleted;
-      case 'done':
-        return CozeEventType.done;
-      default:
-        return CozeEventType.unknown;
-    }
-  }
-
-  // 获取完整的回答内容
-  String get fullAnswer => _fullAnswer;
-}
-
-const String redirectUri = "http://localhost:3000/callback"; // 需与控制台配置一致
-const String authorizationEndpoint =
-    "https://www.coze.cn/api/permission/oauth2/authorize";
-const String tokenEndpoint =
-    "https://api.coze.cn/api/permission/oauth2/token"; // 一行代码带来的错误改了一晚上😭😭😭😭😭😭😭😭😭
-
-class OAuthService {
-  String? _accessToken;
-  String? _refreshToken;
-  DateTime? _tokenExpiry;
-  String? _codeVerifier;
-
-  // 生成Code Verifier
-  String _generateCodeVerifier() {
-    final random = Random.secure();
-    final values = List<int>.generate(32, (i) => random.nextInt(16));
-    return base64Url.encode(values).replaceAll('=', '');
-  }
-
-  // 生成Code Challenge
-  String _generateCodeChallenge(String verifier) {
-    final bytes = utf8.encode(verifier);
-    final digest = sha256.convert(bytes);
-    return base64Url.encode(digest.bytes).replaceAll('=', '');
-  }
-
-  // 启动PKCE流程获取token
-  Future<String> getAccessToken() async {
-    // 检查token是否有效
-    if (_accessToken != null &&
-        _tokenExpiry != null &&
-        DateTime.now().isBefore(_tokenExpiry!)) {
-      return _accessToken!;
-    }
-
-    // 如果有refresh token尝试刷新
-    if (_refreshToken != null) {
-      try {
-        final newToken = await _refreshAccessToken();
-        return newToken;
-      } catch (e) {
-        print('刷新token失败，将重新获取: $e');
-      }
-    }
-
-    // 完整PKCE流程
-    _codeVerifier = _generateCodeVerifier();
-    final codeChallenge = _generateCodeChallenge(_codeVerifier!);
-
-    print('code_verifier: $_codeVerifier');
-    print('code_challenge: $codeChallenge');
-    // 构建授权URL
-    final authorizationUrl = Uri.parse(authorizationEndpoint).replace(
-      queryParameters: {
-        'response_type': 'code',
-        'client_id': clientId,
-        'redirect_uri': redirectUri,
-        'code_challenge': codeChallenge,
-        'code_challenge_method': 'S256',
-        'state': _generateCodeVerifier().substring(0, 16), // 简单的state生成
-      },
+  void _pushPage() async {
+    if (!mounted) return;
+    await Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (context) => CozePage(callMsg: '', autoFocus: false),
+      ),
     );
-    print('即将打开的授权URL：${authorizationUrl.toString()}');
-
-    // 启动本地服务器接收回调
-    final codeCompleter = Completer<String>();
-    final server = await _startCallbackServer(codeCompleter);
-
-    // 打开浏览器让用户授权
-    if (await canLaunchUrl(authorizationUrl)) {
-      await launchUrl(
-        authorizationUrl,
-        // 根据平台选择合适的启动模式
-        mode: LaunchMode.inAppBrowserView, // 打开系统浏览器（推荐授权场景）
-      );
-    } else {
-      throw Exception('无法打开授权页面: ${authorizationUrl.toString()}');
-    }
-
-    // 等待获取授权code
-    final code = await codeCompleter.future;
-    await server.close();
-
-    // 使用code交换token
-    final tokenResponse = await _exchangeCodeForToken(code);
-    _accessToken = tokenResponse['access_token'];
-    _refreshToken = tokenResponse['refresh_token'];
-    _tokenExpiry = DateTime.now().add(
-      Duration(seconds: tokenResponse['expires_in'] as int),
-    );
-
-    return _accessToken!;
+    widget.callback();
   }
 
-  // 启动本地回调服务器
-  Future<HttpServer> _startCallbackServer(
-    Completer<String> codeCompleter,
-  ) async {
-    // 使用函数声明替代闭包变量赋值
-    Future<shelf.Response> handleCallbackRequest(shelf.Request request) async {
-      final uri = request.requestedUri;
-      final code = uri.queryParameters['code'];
-      final error = uri.queryParameters['error'];
-
-      if (error != null) {
-        codeCompleter.completeError(Exception('授权失败: $error'));
-        return shelf.Response.ok('授权失败，请关闭页面返回应用');
-      }
-
-      if (code != null) {
-        codeCompleter.complete(code);
-        return shelf.Response.ok(
-          '<html><body>授权成功，请关闭页面返回应用</body></html>', // 使用 HTML 格式
-          headers: {'Content-Type': 'text/html; charset=utf-8'}, // 明确指定类型
-        );
-      }
-
-      codeCompleter.completeError(Exception('未获取到授权code'));
-      return shelf.Response.ok('授权失败，请关闭页面返回应用');
-    }
-
-    // shelf_io.serve 返回的是 Future<HttpServer>（来自 dart:io）
-    final server = await io.serve(handleCallbackRequest, 'localhost', 3000);
-    print('本地回调服务器启动在: http://${server.address.host}:${server.port}');
-    return server; // server 的类型是 HttpServer，与返回类型匹配
+  @override
+  void initState() {
+    super.initState();
+    // 改用initState初始化，避免didChangeDependencies的频繁调用
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      quickStart();
+    });
   }
 
-  // 用授权code交换token
-  Future<Map<String, dynamic>> _exchangeCodeForToken(String code) async {
-    final response = await http.post(
-      Uri.parse(tokenEndpoint),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({
-        'grant_type': 'authorization_code',
-        'code': code,
-        'client_id': clientId,
-        'redirect_uri': redirectUri,
-        'code_verifier': _codeVerifier,
-      }),
-    );
-    // 打印关键调试信息
-    if (response.request is http.Request) {
-      final requestBody = (response.request as http.Request).body;
-      print('Token 交换请求参数: $requestBody');
-    } else {
-      print('Token 交换请求参数: 无法获取（非 Request 类型）');
-    }
-    print('Token 交换响应状态码: ${response.statusCode}'); // 打印状态码
-    print('Token 交换响应原始内容: ${response.body}'); // 打印原始响应（可能包含错误信息）
-
-    if (response.statusCode != 200) {
-      throw Exception('交换token失败: ${response.body}');
-    }
-
-    return json.decode(response.body);
+  @override
+  void dispose() {
+    _streamSubscription?.cancel();
+    super.dispose();
   }
 
-  // 刷新token
-  Future<String> _refreshAccessToken() async {
-    final response = await http.post(
-      Uri.parse(tokenEndpoint),
-      headers: {'Content-Type': 'application/json'},
-      body: json.encode({
-        'grant_type': 'refresh_token',
-        'refresh_token': _refreshToken,
-        'client_id': clientId,
-      }),
+  @override
+  Widget build(BuildContext context) {
+    return LoadingAnimation(
+      isLoading: isLoading && isSend,
+      loadingText: loadingLabel,
     );
-
-    if (response.statusCode != 200) {
-      throw Exception('刷新token失败: ${response.body}');
-    }
-
-    final tokenResponse = json.decode(response.body);
-    _accessToken = tokenResponse['access_token'];
-    _refreshToken = tokenResponse['refresh_token'];
-    _tokenExpiry = DateTime.now().add(
-      Duration(seconds: tokenResponse['expires_in'] as int),
-    );
-
-    return _accessToken!;
   }
 }

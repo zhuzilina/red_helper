@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:red_helper/pages/content_page/web_view/web_view_page.dart';
+import 'package:red_helper/pages/content_page/book_page/book_page.dart';
+// import 'package:red_helper/pages/content_page/web_view/web_view_page.dart';
 
 class BookGridItem extends StatelessWidget {
   final String title;
@@ -18,13 +19,7 @@ class BookGridItem extends StatelessWidget {
           // 跳转到书籍详情页，传递必要参数
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder:
-                  (context) => ContentPage(
-                    assetPath: 'assets/html/pages/book.html',
-                    title: title,
-                  ),
-            ),
+            MaterialPageRoute(builder: (context) => ReadingScreen()),
           );
         },
         child: Column(

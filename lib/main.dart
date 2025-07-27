@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:red_helper/providers/msg_state.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:provider/provider.dart';
 import 'package:red_helper/main_screen.dart';
@@ -25,10 +26,10 @@ void main() async {
         Provider<ApiService>(create: (_) => ApiService(token)),
         ChangeNotifierProxyProvider<ApiService, PointsState>(
           create: (context) => PointsState(context.read<ApiService>()),
-          update:
-              (_, apiService, pointsState) =>
-                  pointsState ?? PointsState(apiService),
+          update: (_, apiService, pointsState) =>
+              pointsState ?? PointsState(apiService),
         ),
+        ChangeNotifierProvider(create: (_) => MsgState()),
       ],
       child: const MyApp(),
     ),

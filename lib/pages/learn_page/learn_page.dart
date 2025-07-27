@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:red_helper/coze_page.dart';
+import 'package:red_helper/pages/learn_page/digita_pserson_float_view_home.dart';
 import 'package:red_helper/repository/api/api.dart';
 import 'package:red_helper/repository/models/model.dart';
 import 'package:red_helper/repository/api/api_kits.dart';
@@ -36,24 +37,28 @@ class _LearnPageState extends State<LearnPage> {
     {'user': '用户2', 'comment': '每日答题帮助我巩固知识'},
     {'user': '用户3', 'comment': '推荐给所有想学习的朋友'},
   ];
-  final List<Map<String, String>> _newsItems = [
+  final List<Map<String, dynamic>> _newsItems = [
     {
-      'cover': 'https://picsum.photos/200/150?random=1',
-      'title': '人工智能在教育领域的应用趋势',
+      'cover':
+          'https://boot-img.xuexi.cn/image/1004/61302144861713612806101004/1566533ac9694a50b9a3547a57a2f830-2.jpg',
+      'title': '人民的好公仆——焦裕禄',
       'date': '2024-03-15',
-      'category': '科技',
+      'category': '人物',
+      'path': 'assets/articles/article01.md',
+      'suggestions': ['焦裕禄在兰考如何体现 “身先士卒”？', '焦裕禄精神对兰考发展有何作用？'],
     },
     {
-      'cover': 'https://picsum.photos/200/150?random=2',
-      'title': '经典文学阅读推荐书单',
-      'date': '2024-03-14',
-      'category': '人文',
-    },
-    {
-      'cover': 'https://picsum.photos/200/150?random=3',
-      'title': '最新教育政策解读',
-      'date': '2024-03-13',
-      'category': '教育',
+      'cover':
+          'https://boot-img.xuexi.cn/image/1004/process/29c845d32dca49e38bd7f8a0293b3794.jpg',
+      'title': '90多年前的原创精神“燃”到今天',
+      'date': '2021-07-23',
+      'category': '精神',
+      'path': 'assets/articles/article02.md',
+      'suggestions': [
+        '井冈山精神的具体内涵如何在革命斗争中体现？',
+        '当代青少年应怎样更好传承和弘扬井冈山精神？',
+        '新时代背景下井冈山精神还能在哪些方面发挥重要时代价值？',
+      ],
     },
   ];
   int _selectedNewsCategory = 0;
@@ -128,9 +133,12 @@ class _LearnPageState extends State<LearnPage> {
       floatingActionButton: Stack(
         children: [
           Positioned(
-            bottom: 280,
-            right: 2,
-            child: DigitaPsersonFloatViewHome(),
+            bottom: 380,
+            right: -10,
+            child: DigitaPsersonFloatViewHome(
+              suggestions: [],
+              onTapSuggestion: () {},
+            ),
           ),
         ],
       ),
@@ -149,6 +157,23 @@ class _LearnPageState extends State<LearnPage> {
             ),
           ),
 
+          // 信息卡片
+          SliverToBoxAdapter(
+            child: InformationCard(
+              newsItems: _newsItems,
+              selectedCategoryIndex: _selectedNewsCategory,
+              onCategoryChanged: (index) {
+                setState(() => _selectedNewsCategory = index);
+                // 这里可以添加分类过滤逻辑
+              },
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Divider(),
+            ),
+          ),
           // 书籍网格
           SliverPadding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -171,17 +196,6 @@ class _LearnPageState extends State<LearnPage> {
                 },
                 childCount: _books.length + 1, // 动态计算子项数量
               ),
-            ),
-          ),
-          // 信息卡片
-          SliverToBoxAdapter(
-            child: InformationCard(
-              newsItems: _newsItems,
-              selectedCategoryIndex: _selectedNewsCategory,
-              onCategoryChanged: (index) {
-                setState(() => _selectedNewsCategory = index);
-                // 这里可以添加分类过滤逻辑
-              },
             ),
           ),
         ],
@@ -210,45 +224,6 @@ class _LearnPageState extends State<LearnPage> {
                     ? '答题PK'
                     : '排行榜',
               ),
-      ),
-    );
-  }
-}
-
-class DigitaPsersonFloatViewHome extends StatelessWidget {
-  const DigitaPsersonFloatViewHome({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => showModalBottomSheet(
-        isScrollControlled: true,
-        context: context,
-        builder: (BuildContext context) {
-          return LayoutBuilder(
-            builder: (context, constraints) => SizedBox(
-              width: constraints.maxWidth,
-              height: constraints.maxHeight * 0.9,
-              child: ClipRRect(child: CozePage(callMsg: '')),
-            ),
-          );
-        },
-      ),
-      child: SizedBox(
-        width: 100,
-        child: Column(
-          children: [
-            Image.asset('assets/images/digital_person.png'),
-            Card(
-              margin: EdgeInsets.fromLTRB(2, 0, 2, 2),
-              color: Colors.white,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(4, 0, 0, 0),
-                child: Text('你好呀，我是小红同学，有红色文化相关的问题都可以来问我哦🙂'),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
