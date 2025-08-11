@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:red_helper/o_auth_service.dart';
 import 'package:red_helper/route/routes.dart';
 import 'package:red_helper/repository/api/login_api.dart'; // 确保导入正确的API服务
 
@@ -42,10 +43,12 @@ class _LoginPageState extends State<LoginPage> {
           // 已经在ApiService.login中处理了令牌保存
         }
 
-        // 显示登录成功消息
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(response['message'] ?? '登录成功')));
+        final OAuthService _oAuthService = OAuthService();
+        try {
+          await _oAuthService.getAccessToken();
+        } catch (e) {
+          throw ('oauth token获取失败$e');
+        }
 
         // 导航到主页
         Navigator.pushNamedAndRemoveUntil(
@@ -66,17 +69,16 @@ class _LoginPageState extends State<LoginPage> {
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
-      builder:
-          (ctx) => AlertDialog(
-            title: const Text('登录失败'),
-            content: Text(message),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('确定'),
-              ),
-            ],
+      builder: (ctx) => AlertDialog(
+        title: const Text('登录失败'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('确定'),
           ),
+        ],
+      ),
     );
   }
 
@@ -134,9 +136,8 @@ class _LoginPageState extends State<LoginPage> {
                   icon: Icon(
                     _obscurePassword ? Icons.visibility_off : Icons.visibility,
                   ),
-                  onPressed:
-                      () =>
-                          setState(() => _obscurePassword = !_obscurePassword),
+                  onPressed: () =>
+                      setState(() => _obscurePassword = !_obscurePassword),
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
@@ -156,18 +157,16 @@ class _LoginPageState extends State<LoginPage> {
                   children: [
                     Checkbox(
                       value: _rememberMe,
-                      onChanged:
-                          (value) =>
-                              setState(() => _rememberMe = value ?? false),
+                      onChanged: (value) =>
+                          setState(() => _rememberMe = value ?? false),
                     ),
                     Text('记住登录状态'),
                     const Spacer(),
                     TextButton(
-                      onPressed:
-                          () => Navigator.pushNamed(
-                            context,
-                            RoutePath.forgotPassword,
-                          ),
+                      onPressed: () => Navigator.pushNamed(
+                        context,
+                        RoutePath.forgotPassword,
+                      ),
                       child: Text('忘记密码？'),
                     ),
                   ],
@@ -209,14 +208,13 @@ class AuthButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return ElevatedButton(
       onPressed: isLoading ? null : onPressed,
-      child:
-          isLoading
-              ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              )
-              : Text(buttonText),
+      child: isLoading
+          ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          : Text(buttonText),
     );
   }
 }
@@ -315,15 +313,14 @@ class AuthInput extends StatelessWidget {
           color: colorScheme.onSurface.withOpacity(0.5), // 提示文字浅色化
         ),
         // 后缀图标（如密码可见性按钮）
-        suffixIcon:
-            suffixIcon != null
-                ? IconTheme(
-                  data: IconThemeData(
-                    color: colorScheme.onSurface.withOpacity(0.6), // 统一后缀图标颜色
-                  ),
-                  child: suffixIcon!,
-                )
-                : null,
+        suffixIcon: suffixIcon != null
+            ? IconTheme(
+                data: IconThemeData(
+                  color: colorScheme.onSurface.withOpacity(0.6), // 统一后缀图标颜色
+                ),
+                child: suffixIcon!,
+              )
+            : null,
         // 输入框背景
         filled: true,
         fillColor: colorScheme.surface.withOpacity(0.8), // 浅色背景，提升可读性

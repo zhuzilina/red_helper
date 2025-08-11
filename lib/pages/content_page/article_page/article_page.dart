@@ -1,6 +1,9 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:red_helper/pages/learn_page/digita_pserson_float_view_home.dart';
+import 'package:red_helper/coze_page.dart';
+import 'package:red_helper/pages/content_page/super_page/super_page.dart';
 
 class MarkdownParserPage extends StatefulWidget {
   final String title;
@@ -235,19 +238,314 @@ class _MarkdownParserPageState extends State<MarkdownParserPage> {
               ),
             )
           : const Center(child: CircularProgressIndicator()),
-      floatingActionButton: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            bottom: 280,
-            right: -35,
-            child: DigitaPsersonFloatViewHome(
-              suggestions: widget.suggestions,
-              onTapSuggestion: () {},
-            ),
+      // floatingActionButton: Stack(
+      //   clipBehavior: Clip.none,
+      //   children: [
+      //     Positioned(
+      //       bottom: 280,
+      //       right: -35,
+      //       child: DigitaPsersonFloatViewHome(
+      //         suggestions: widget.suggestions,
+      //         onTapSuggestion: () {},
+      //       ),
+      //     ),
+      //   ],
+      // ),
+      floatingActionButtonLocation: ZeroMarginFABLocation(),
+      floatingActionButton: FloatingActionMenu(
+        imageAsset: 'assets/images/digital_person_1.png',
+        options: [
+          FloatingOption(
+            label: '了解人物',
+            icon: Icons.add,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => SuperPage()),
+              );
+            },
+            color: Colors.blue,
+          ),
+          FloatingOption(
+            label: '了解兰考',
+            icon: Icons.edit,
+            onTap: () => print('点击了选项二'),
+            color: Colors.green,
+          ),
+          FloatingOption(
+            label: '了解理论',
+            icon: Icons.delete,
+            onTap: () => print('点击了选项三'),
+            color: Colors.red,
           ),
         ],
       ),
+    );
+  }
+}
+
+class ZeroMarginFABLocation extends FloatingActionButtonLocation {
+  @override
+  Offset getOffset(ScaffoldPrelayoutGeometry scaffoldGeometry) {
+    // 获取屏幕尺寸和按钮尺寸
+    final double width = scaffoldGeometry.scaffoldSize.width;
+    final double height = scaffoldGeometry.scaffoldSize.height;
+    final double fabWidth = scaffoldGeometry.floatingActionButtonSize.width;
+    final double fabHeight = scaffoldGeometry.floatingActionButtonSize.height;
+
+    // 计算安全区（可选）
+    final double safePadding = scaffoldGeometry.minViewPadding.bottom;
+
+    // 紧贴右下角（移除默认16px边距）
+    return Offset(
+      width - fabWidth, // 右侧无间距
+      height - fabHeight - safePadding, // 底部无间距（但考虑安全区）
+    );
+  }
+}
+
+class FloatingActionMenu extends StatefulWidget {
+  // 主图片资源
+  final String imageAsset;
+  // 选项列表
+  final List<FloatingOption> options;
+  // 主按钮大小
+  final double buttonSize;
+  // 选项按钮高度
+  final double optionHeight;
+  // 选项按钮宽度
+  final double optionWidth;
+  // 动画持续时间
+  final Duration animationDuration;
+  // 右侧距离
+  final double rightOffset;
+
+  const FloatingActionMenu({
+    super.key,
+    required this.imageAsset,
+    required this.options,
+    this.buttonSize = 60.0,
+    this.optionHeight = 48.0,
+    this.optionWidth = 120.0,
+    this.animationDuration = const Duration(milliseconds: 300),
+    this.rightOffset = 1.0, // 默认距离右侧24像素
+  }) : assert(options.length == 3, "必须提供3个选项");
+
+  @override
+  State<FloatingActionMenu> createState() => _FloatingActionMenuState();
+}
+
+class FloatingOption {
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color color;
+
+  const FloatingOption({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.color = Colors.blue,
+  });
+}
+
+class _FloatingActionMenuState extends State<FloatingActionMenu>
+    with SingleTickerProviderStateMixin {
+  bool _isOpen = false;
+  final GlobalKey _menuKey = GlobalKey();
+  late AnimationController _animationController;
+  late Animation<double> _opacityAnimation;
+  final List<GlobalKey> _optionKeys = List.generate(3, (_) => GlobalKey());
+
+  // 正确的展开位置计算器（左侧展开）
+  List<Offset> get _expansionOffsets {
+    const expansionRadius = 140.0; // 展开半径
+    return [
+      Offset(
+        -expansionRadius * cos(pi / 4),
+        -expansionRadius * sin(pi / 4),
+      ), // 左上角45°
+      Offset(-expansionRadius, 0), // 正左
+      Offset(
+        -expansionRadius * cos(pi / 4),
+        expansionRadius * sin(pi / 4),
+      ), // 左下角45°
+    ];
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: widget.animationDuration,
+    );
+
+    _opacityAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  void _toggleMenu() {
+    setState(() {
+      _isOpen = !_isOpen;
+      if (_isOpen) {
+        _animationController.forward();
+      } else {
+        _animationController.reverse();
+      }
+    });
+  }
+
+  bool _isPointInsideMenu(Offset globalPoint) {
+    final screenSize = MediaQuery.of(context).size;
+    final menuPosition = screenSize.height / 2 - widget.buttonSize / 2;
+
+    // 主按钮区域
+    final menuRect = Rect.fromLTWH(
+      screenSize.width - widget.rightOffset - widget.buttonSize,
+      menuPosition,
+      widget.buttonSize,
+      widget.buttonSize,
+    );
+
+    if (menuRect.contains(globalPoint)) {
+      return true;
+    }
+
+    // 选项按钮区域
+    final offsets = _expansionOffsets;
+    for (var i = 0; i < offsets.length; i++) {
+      final offset = offsets[i];
+      final optionRect = Rect.fromCircle(
+        center: Offset(
+          screenSize.width -
+              widget.rightOffset -
+              widget.buttonSize / 2 +
+              offset.dx,
+          menuPosition + widget.buttonSize / 2 + offset.dy,
+        ),
+        radius: max(widget.optionWidth, widget.optionHeight) / 2,
+      );
+
+      if (optionRect.contains(globalPoint)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final screenSize = MediaQuery.of(context).size;
+    final menuPosition = screenSize.height / 3 - widget.buttonSize / 3;
+    final expansionOffsets = _expansionOffsets;
+
+    return Stack(
+      children: [
+        // 外部点击检测层
+        if (_isOpen)
+          Positioned.fill(
+            child: Listener(
+              behavior: HitTestBehavior.translucent,
+              onPointerDown: (event) {
+                if (!_isPointInsideMenu(event.position)) {
+                  _toggleMenu();
+                }
+              },
+            ),
+          ),
+
+        // 纯图片主按钮 - 去除了所有装饰效果
+        Positioned(
+          top: menuPosition,
+          right: widget.rightOffset,
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: _toggleMenu,
+              child: SizedBox(
+                width: 80,
+                child: Image.asset(widget.imageAsset, fit: BoxFit.contain),
+              ),
+            ),
+          ),
+        ),
+
+        // 选项按钮 - 在左侧展开
+        ...List.generate(widget.options.length, (index) {
+          return Positioned(
+            top:
+                menuPosition +
+                widget.buttonSize / 2 +
+                expansionOffsets[index].dy,
+            left:
+                screenSize.width -
+                widget.rightOffset -
+                widget.buttonSize / 2 +
+                expansionOffsets[index].dx -
+                widget.optionWidth / 2,
+            child: FadeTransition(
+              opacity: _opacityAnimation,
+              child: IgnorePointer(
+                ignoring: !_isOpen,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    key: _optionKeys[index],
+                    onTap: () {
+                      widget.options[index].onTap();
+                      _toggleMenu();
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width: widget.optionWidth,
+                      height: widget.optionHeight,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: widget.options[index].color,
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            widget.options[index].icon,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            widget.options[index].label,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ],
     );
   }
 }

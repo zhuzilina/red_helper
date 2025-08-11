@@ -102,44 +102,6 @@ class _DigitaPsersonFloatViewHomeState
             ),
           ),
 
-          // 带动画效果的建议卡片
-          if (widget.suggestions.isNotEmpty && !isLoading)
-            Positioned(
-              left: 10,
-              top: 70,
-              child: GestureDetector(
-                onTap: widget.onTapSuggestion,
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(4),
-                  child: AnimatedOpacity(
-                    opacity: _isAnimating ? 0.0 : 1.0,
-                    duration: const Duration(milliseconds: 50),
-                    curve: Curves.easeOut,
-                    child: Card(
-                      elevation: 4,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: SizedBox(
-                          width: 100,
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                isLoading = true;
-                                currentMsg = widget.suggestions[_currentIndex];
-                              });
-                            },
-                            child: TypewriterText(
-                              text: widget.suggestions[_currentIndex],
-                              speed: Duration(milliseconds: 100),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
           if (isLoading)
             Positioned(
               left: 70,

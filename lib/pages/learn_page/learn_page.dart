@@ -133,7 +133,7 @@ class _LearnPageState extends State<LearnPage> {
       floatingActionButton: Stack(
         children: [
           Positioned(
-            bottom: 380,
+            bottom: 280,
             right: -10,
             child: DigitaPsersonFloatViewHome(
               suggestions: [],

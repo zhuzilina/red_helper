@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:red_helper/coze_page.dart';
 import 'package:red_helper/markdown_complete_widget.dart';
 
 class MsgCard extends StatefulWidget {
