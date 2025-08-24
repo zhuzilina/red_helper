@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:red_helper/coze_page.dart';
+import 'package:red_helper/pages/coze_page/coze_page.dart';
 import 'package:red_helper/pages/learn_page/digita_pserson_float_view_home.dart';
 import 'package:red_helper/repository/api/api.dart';
 import 'package:red_helper/repository/models/model.dart';
 import 'package:red_helper/repository/api/api_kits.dart';
 import 'package:red_helper/pages/content_page/web_view/web_view_page.dart';
+import 'package:red_helper/api_exception/api_exception.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 import '../content_page/question/pk.dart';
 import '../content_page/question/question.dart';
@@ -30,6 +32,8 @@ class _LearnPageState extends State<LearnPage> {
   List<Book> _books = [];
   bool _isLoading = false;
   String _errorMessage = '';
+  // 网络连接状态
+  bool _hasNetworkConnection = true;
   // 模拟数据
   final List<String> books = ['毛泽东选集', '红星照耀中国', '红岩', '可爱的中国'];
   final List<Map<String, String>> testimonials = [
@@ -45,12 +49,12 @@ class _LearnPageState extends State<LearnPage> {
       'date': '2024-03-15',
       'category': '人物',
       'path': 'assets/articles/article01.md',
-      'suggestions': ['焦裕禄在兰考如何体现 “身先士卒”？', '焦裕禄精神对兰考发展有何作用？'],
+      'suggestions': ['焦裕禄在兰考如何体现 "身先士卒"？', '焦裕禄精神对兰考发展有何作用？'],
     },
     {
       'cover':
           'https://boot-img.xuexi.cn/image/1004/process/29c845d32dca49e38bd7f8a0293b3794.jpg',
-      'title': '90多年前的原创精神“燃”到今天',
+      'title': '90多年前的原创精神"燃"到今天',
       'date': '2021-07-23',
       'category': '精神',
       'path': 'assets/articles/article02.md',
@@ -62,11 +66,43 @@ class _LearnPageState extends State<LearnPage> {
     },
   ];
   int _selectedNewsCategory = 0;
+
   @override
   void initState() {
     super.initState();
-    _refreshData(); // 获取token
-    _loadBookWinnow();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _checkNetworkConnection();
+      await _refreshData(); // 获取token
+      if (_isLogin && _hasNetworkConnection) {
+        await _loadBookWinnow();
+        await _loadBook();
+      }
+    });
+  }
+
+  // 检查网络连接状态
+  Future<void> _checkNetworkConnection() async {
+    try {
+      final connectivityResult = await Connectivity().checkConnectivity();
+      final hasConnection = connectivityResult != ConnectivityResult.none;
+
+      if (!mounted) return; // 提前检查mounted状态
+
+      setState(() => _hasNetworkConnection = hasConnection);
+
+      if (!hasConnection) {
+        if (mounted) {
+          setState(() {
+            _errorMessage = '网络连接不可用，请检查网络设置';
+          });
+        }
+      }
+    } catch (e) {
+      // 如果无法检查网络状态，假设有网络连接
+      if (mounted) {
+        setState(() => _hasNetworkConnection = true);
+      }
+    }
   }
 
   Future<void> _refreshData() async {
@@ -76,30 +112,51 @@ class _LearnPageState extends State<LearnPage> {
         setState(() => _isLogin = token.isNotEmpty);
       }
       _apiService.token = token;
-      if (_isLogin) await _loadBookWinnow();
-      if (_isLogin) await _loadBook();
     } catch (e) {
       if (mounted) {
-        setState(() => _errorMessage = '加载 Token 失败');
+        setState(() {
+          _errorMessage = '加载 Token 失败';
+          _isLogin = false;
+        });
       }
     }
   }
 
   Future<void> _loadBookWinnow() async {
     if (!_isLogin) return;
-    setState(() => _isLoading = true);
+    if (!_hasNetworkConnection) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = '网络连接不可用，请检查网络设置';
+          _isLoading = false;
+        });
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() => _isLoading = true);
+    }
     try {
       final winnow = await _apiService.getBookWinnow();
       if (mounted) {
         setState(() {
           _bookWinnow = winnow;
           _isLoading = false;
+          _errorMessage = '';
+        });
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.message;
+          _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString();
+          _errorMessage = '数据加载失败，请稍后重试';
           _isLoading = false;
         });
       }
@@ -108,19 +165,39 @@ class _LearnPageState extends State<LearnPage> {
 
   Future<void> _loadBook() async {
     if (!_isLogin) return;
-    setState(() => _isLoading = true);
+    if (!_hasNetworkConnection) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = '网络连接不可用，请检查网络设置';
+          _isLoading = false;
+        });
+      }
+      return;
+    }
+
+    if (mounted) {
+      setState(() => _isLoading = true);
+    }
     try {
       final book = await _apiService.getBook();
       if (mounted) {
         setState(() {
           _books = book;
           _isLoading = false;
+          _errorMessage = '';
+        });
+      }
+    } on ApiException catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.message;
+          _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = e.toString();
+          _errorMessage = '数据加载失败，请稍后重试';
           _isLoading = false;
         });
       }

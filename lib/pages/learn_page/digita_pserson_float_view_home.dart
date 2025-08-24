@@ -2,7 +2,8 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:red_helper/coze_page.dart';
+import 'package:red_helper/pages/coze_page/coze_page.dart';
+import 'package:red_helper/pages/learn_page/widget/common/safe_image.dart';
 
 class DigitaPsersonFloatViewHome extends StatefulWidget {
   const DigitaPsersonFloatViewHome({
@@ -97,7 +98,11 @@ class _DigitaPsersonFloatViewHomeState
             child: SizedBox(
               width: 100,
               child: Column(
-                children: [Image.asset('assets/images/digital_person_1.png')],
+                children: [
+                  SafeAssetImage(
+                    assetPath: 'assets/images/digital_person_1.png',
+                  ),
+                ],
               ),
             ),
           ),

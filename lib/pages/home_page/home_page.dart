@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 import 'package:pedometer/pedometer.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 // 导入服务组件
 import 'package:red_helper/route/routes.dart';
 import 'package:red_helper/repository/api/api.dart';
@@ -37,6 +38,8 @@ class _HomePageState extends State<HomePage> {
   List<PointsCategory> _categories = [];
   bool _isCategoriesLoading = false;
   String _categoriesError = '';
+  // 网络连接状态
+  bool _hasNetworkConnection = true;
   // 处理地图板块
   // 气泡
   List<String> pops = [
@@ -66,8 +69,9 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _checkNetworkConnection();
       await _checkAuthentication();
-      if (_isLogin) {
+      if (_isLogin && _hasNetworkConnection) {
         await _loadFriendRanking();
         await _loadPointsDistribution();
       }
@@ -76,17 +80,51 @@ class _HomePageState extends State<HomePage> {
     //initPlatformState(); // 初始化步数获取
   }
 
+  // 检查网络连接状态
+  Future<void> _checkNetworkConnection() async {
+    try {
+      final connectivityResult = await Connectivity().checkConnectivity();
+      final hasConnection = connectivityResult != ConnectivityResult.none;
+
+      if (!mounted) return; // 提前检查mounted状态
+
+      setState(() => _hasNetworkConnection = hasConnection);
+
+      if (!hasConnection) {
+        if (mounted) {
+          setState(() {
+            _errorMessage = '网络连接不可用，请检查网络设置';
+            _categoriesError = '网络连接不可用，请检查网络设置';
+          });
+        }
+      }
+    } catch (e) {
+      // 如果无法检查网络状态，假设有网络连接
+      if (mounted) {
+        setState(() => _hasNetworkConnection = true);
+      }
+    }
+  }
+
   void _startAutoSwitch() {
     _timer = Timer.periodic(
       const Duration(seconds: 10), // 6秒间隔
-      (Timer timer) => _switchContent(),
+      (Timer timer) {
+        if (mounted) {
+          _switchContent();
+        } else {
+          timer.cancel(); // 如果组件已销毁，取消定时器
+        }
+      },
     );
   }
 
   void _switchContent() {
-    setState(() {
-      currentVisible = (currentVisible + 1) % 6; // 循环切换
-    });
+    if (mounted) {
+      setState(() {
+        currentVisible = (currentVisible + 1) % 6; // 循环切换
+      });
+    }
   }
 
   // void onStepCount(StepCount event) {
@@ -119,40 +157,70 @@ class _HomePageState extends State<HomePage> {
   // }
 
   Future<bool> _checkAuthentication() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token') ?? '';
-    final isAuthenticated = token.isNotEmpty;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token') ?? '';
+      final isAuthenticated = token.isNotEmpty;
 
-    if (mounted) {
-      setState(() => _isLogin = isAuthenticated);
-    }
+      if (mounted) {
+        setState(() => _isLogin = isAuthenticated);
+      }
 
-    if (!isAuthenticated) {
+      if (!isAuthenticated) {
+        if (mounted) {
+          setState(() {
+            _errorMessage = '请先登录';
+            _friends = [];
+            _categories = [];
+          });
+        }
+      }
+      return isAuthenticated;
+    } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = '请先登录';
-          _friends = [];
-          _categories = [];
+          _errorMessage = '认证状态检查失败';
+          _isLogin = false;
         });
       }
+      return false;
     }
-    return isAuthenticated;
   }
 
   Future<void> _loadFriendRanking() async {
     if (!await _checkAuthentication()) return;
+    if (!_hasNetworkConnection) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = '网络连接不可用，请检查网络设置';
+          _isLoading = false;
+        });
+      }
+      return;
+    }
 
-    setState(() => _isLoading = true);
+    if (mounted) {
+      setState(() => _isLoading = true);
+    }
     try {
       // 每次请求前获取最新token
       final currentToken = await loadToken();
+      print('🔍 开始加载积分排行数据...');
+      print('🔑 当前Token: ${currentToken.substring(0, 20)}...');
+
       final ranking = await ApiService(currentToken).getFriendRanking();
+      print('✅ 积分排行数据加载成功，数量: ${ranking.length}');
+      print(
+        '📊 排行数据: ${ranking.map((f) => '${f.nikename}: ${f.points}分').join(', ')}',
+      );
 
       if (mounted) {
         setState(() {
           _friends = ranking;
           _isLoading = false;
+          _errorMessage = '';
         });
+        print('🔄 积分排行状态已更新');
       }
     } on ApiException catch (e) {
       // 处理认证失败情况
@@ -168,7 +236,7 @@ class _HomePageState extends State<HomePage> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _errorMessage = '数据加载失败: ${e.toString()}';
+          _errorMessage = '数据加载失败，请稍后重试';
           _isLoading = false;
         });
       }
@@ -177,43 +245,71 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _loadPointsDistribution() async {
     if (!await _checkAuthentication()) return;
+    if (!_hasNetworkConnection) {
+      if (mounted) {
+        setState(() {
+          _categoriesError = '网络连接不可用，请检查网络设置';
+          _isCategoriesLoading = false;
+        });
+      }
+      return;
+    }
 
-    setState(() => _isCategoriesLoading = true);
+    if (mounted) {
+      setState(() => _isCategoriesLoading = true);
+    }
     try {
       final currentToken = await loadToken();
-      final data = await ApiService(currentToken).getPointsDistribution();
+      print('🔍 开始加载积分分布数据...');
 
-      setState(() {
-        _categories = data;
-        _isCategoriesLoading = false;
-        _categoriesError = '';
-      });
+      final data = await ApiService(currentToken).getPointsDistribution();
+      print('✅ 积分分布数据加载成功，数量: ${data.length}');
+      print(
+        '📊 分布数据: ${data.map((c) => '${c.category}: ${c.points}分').join(', ')}',
+      );
+
+      if (mounted) {
+        setState(() {
+          _categories = data;
+          _isCategoriesLoading = false;
+          _categoriesError = '';
+        });
+        print('🔄 积分分布状态已更新');
+      }
     } on ApiException catch (e) {
       if (e.statusCode == 401) {
         await _logout();
       }
-      setState(() {
-        _categoriesError = e.message;
-        _isCategoriesLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _categoriesError = e.message;
+          _isCategoriesLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _categoriesError = '图表加载失败: ${e.toString()}';
-        _isCategoriesLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _categoriesError = '图表加载失败，请稍后重试';
+          _isCategoriesLoading = false;
+        });
+      }
     }
   }
 
   Future<void> _logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('auth_token');
-    if (mounted) {
-      setState(() {
-        _isLogin = false;
-        token = '';
-        _friends = [];
-        _categories = [];
-      });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('auth_token');
+      if (mounted) {
+        setState(() {
+          _isLogin = false;
+          token = '';
+          _friends = [];
+          _categories = [];
+        });
+      }
+    } catch (e) {
+      // 忽略登出时的异常
     }
   }
 
@@ -277,6 +373,17 @@ class _HomePageState extends State<HomePage> {
         onLoginPressed: () => Navigator.pushNamed(context, RoutePath.login),
       );
     }
+    if (!_hasNetworkConnection) {
+      return ErrorRetry(
+        message: '网络连接不可用，请检查网络设置',
+        onRetry: () async {
+          await _checkNetworkConnection();
+          if (_hasNetworkConnection) {
+            await _loadFriendRanking();
+          }
+        },
+      );
+    }
     if (_isLoading) return const LoadingIndicator();
     if (_errorMessage.isNotEmpty) {
       return ErrorRetry(message: _errorMessage, onRetry: _loadFriendRanking);
@@ -289,6 +396,18 @@ class _HomePageState extends State<HomePage> {
     if (!_isLogin) {
       return LoginPrompt(
         onLoginPressed: () => Navigator.pushNamed(context, RoutePath.login),
+      );
+    }
+    if (!_hasNetworkConnection) {
+      return ErrorRetry(
+        message: '网络连接不可用，请检查网络设置',
+        onRetry: () async {
+          await _checkNetworkConnection();
+          if (_hasNetworkConnection) {
+            await _loadPointsDistribution();
+          }
+        },
+        height: 260,
       );
     }
     if (_isCategoriesLoading) return const LoadingIndicator(height: 260);

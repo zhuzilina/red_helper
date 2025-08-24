@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:red_helper/o_auth_service.dart';
+import 'package:red_helper/utils/global_oauth_manager.dart';
 import 'package:red_helper/route/routes.dart';
 import 'package:red_helper/repository/api/login_api.dart'; // 确保导入正确的API服务
 
@@ -43,9 +43,10 @@ class _LoginPageState extends State<LoginPage> {
           // 已经在ApiService.login中处理了令牌保存
         }
 
-        final OAuthService _oAuthService = OAuthService();
+        final oAuthManager = GlobalOAuthManager();
         try {
-          await _oAuthService.getAccessToken();
+          await oAuthManager.initialize();
+          await oAuthManager.getAccessToken();
         } catch (e) {
           throw ('oauth token获取失败$e');
         }

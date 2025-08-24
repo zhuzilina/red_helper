@@ -1,6 +1,7 @@
 // widgets/information_card.dart
 import 'package:flutter/material.dart';
 import 'package:red_helper/pages/content_page/article_page/article_page.dart';
+import 'package:red_helper/pages/learn_page/widget/common/safe_image.dart';
 
 class InformationCard extends StatelessWidget {
   final List<Map<String, dynamic>> newsItems;
@@ -110,12 +111,14 @@ class _NewsItemCard extends StatelessWidget {
               borderRadius: const BorderRadius.horizontal(
                 left: Radius.circular(12),
               ),
-              child: Image.network(
-                item['cover']!,
+              child: SafeNetworkImage(
+                imageUrl: item['cover']!,
                 width: 120,
                 height: 100,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Placeholder(), // 错误处理
+                borderRadius: const BorderRadius.horizontal(
+                  left: Radius.circular(12),
+                ),
               ),
             ),
             Expanded(

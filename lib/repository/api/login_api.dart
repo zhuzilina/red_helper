@@ -3,16 +3,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:async';
 
 class ApiService {
-  static const String _baseUrl = 'http://81.71.152.77:8080';
+  static const String _baseUrl = 'http://192.168.137.1:8080';
   static const String _tokenKey = 'auth_token';
   static const String _expiresInKey = 'token_expires_in';
   static const String _userIdKey = 'user_id';
 
-  static final Dio _dio = Dio(BaseOptions(
-    baseUrl: _baseUrl,
-    connectTimeout: const Duration(seconds: 10),
-    receiveTimeout: const Duration(seconds: 10),
-  ));
+  static final Dio _dio = Dio(
+    BaseOptions(
+      baseUrl: _baseUrl,
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 10),
+    ),
+  );
 
   // 初始化Dio实例，设置拦截器
   static Future<void> init() async {
@@ -24,23 +26,27 @@ class ApiService {
     }
 
     // 添加请求拦截器
-    _dio.interceptors.add(InterceptorsWrapper(
-      onRequest: (options, handler) {
-        // 打印请求信息（开发环境）
-        print('REQUEST[${options.method}] => PATH: ${options.path}');
-        return handler.next(options);
-      },
-      onResponse: (response, handler) {
-        // 打印响应信息（开发环境）
-        print('RESPONSE[${response.statusCode}] => DATA: ${response.data}');
-        return handler.next(response);
-      },
-      onError: (DioException e, handler) {
-        // 打印错误信息
-        print('ERROR[${e.response?.statusCode}] => PATH: ${e.requestOptions.path}');
-        return handler.next(e);
-      },
-    ));
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          // 打印请求信息（开发环境）
+          print('REQUEST[${options.method}] => PATH: ${options.path}');
+          return handler.next(options);
+        },
+        onResponse: (response, handler) {
+          // 打印响应信息（开发环境）
+          print('RESPONSE[${response.statusCode}] => DATA: ${response.data}');
+          return handler.next(response);
+        },
+        onError: (DioException e, handler) {
+          // 打印错误信息
+          print(
+            'ERROR[${e.response?.statusCode}] => PATH: ${e.requestOptions.path}',
+          );
+          return handler.next(e);
+        },
+      ),
+    );
   }
 
   // 注册新用户
@@ -52,14 +58,9 @@ class ApiService {
   }) async {
     try {
       final response = await _dio.post(
-        '/user/register',
-        data: {
-          'username': username,
-          'password': password,
-        },
-        options: Options(
-          contentType: Headers.jsonContentType,
-        ),
+        '/api/auth/register',
+        data: {'username': username, 'password': password},
+        options: Options(contentType: Headers.jsonContentType),
       );
 
       if (response.statusCode != 200) {
@@ -81,14 +82,9 @@ class ApiService {
   }) async {
     try {
       final response = await _dio.post(
-        '/user/login',
-        data: {
-          'username': identifier,
-          'password': password,
-        },
-        options: Options(
-          contentType: Headers.jsonContentType,
-        ),
+        '/api/auth/login',
+        data: {'username': identifier, 'password': password},
+        options: Options(contentType: Headers.jsonContentType),
       );
 
       if (response.statusCode != 200) {
@@ -102,9 +98,7 @@ class ApiService {
         throw FormatException('登录失败: ${response.data['message'] ?? '未知错误'}');
       }
       // 保存令牌和用户信息
-      await _saveAuthData(
-        token: response.data['data']['token'],
-      );
+      await _saveAuthData(token: response.data['data']['token']);
 
       return response.data;
     } on DioException catch (e) {
@@ -115,16 +109,14 @@ class ApiService {
   }
 
   // 保存认证数据到本地存储
-  static Future<void> _saveAuthData({
-    required String token,
-  }) async {
+  static Future<void> _saveAuthData({required String token}) async {
     final prefs = await SharedPreferences.getInstance();
 
     // 计算过期时间戳
 
     await Future.wait([
       prefs.setString(_tokenKey, token),
-      prefs.setString('token', token)
+      prefs.setString('token', token),
     ]);
 
     // 更新Dio实例的认证头

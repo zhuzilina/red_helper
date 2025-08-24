@@ -51,8 +51,8 @@ class Routers {
   // 错误路由处理
   static MaterialPageRoute _errorRoute(RouteSettings settings) {
     return MaterialPageRoute(
-      builder:
-          (_) => Scaffold(body: Center(child: Text('未找到路由: ${settings.name}'))),
+      builder: (_) =>
+          Scaffold(body: Center(child: Text('未找到路由: ${settings.name}'))),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:red_helper/repository/models/model.dart';
+import 'package:red_helper/pages/learn_page/widget/common/safe_image.dart';
 
 class CarouselItem extends StatelessWidget {
   final Book book;
@@ -15,15 +16,7 @@ class CarouselItem extends StatelessWidget {
   }
 
   Widget _buildBookCover() {
-    return Image.network(
-      book.coverUrl,
-      fit: BoxFit.cover,
-      errorBuilder:
-          (_, __, ___) => Container(
-            color: Colors.grey[200],
-            child: const Icon(Icons.broken_image, color: Colors.grey),
-          ),
-    );
+    return SafeNetworkImage(imageUrl: book.coverUrl, fit: BoxFit.cover);
   }
 
   Widget _buildGradientOverlay() {

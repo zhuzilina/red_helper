@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:red_helper/route/routes.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 import 'package:red_helper/pages/content_page/web_view/web_view.dart';
 
@@ -27,6 +28,10 @@ class UserPage extends StatefulWidget {
 
 class _UserPageState extends State<UserPage> with RouteAware {
   bool _isLoggedIn = false;
+  // 网络连接状态
+  bool _hasNetworkConnection = true;
+  String _networkErrorMessage = '';
+
   Map<String, dynamic> userInfo = {
     'background': 'https://picsum.photos/400/200?random=1',
     'avatar': 'http://121.36.87.174:3000/api/image/687877d06442262e7ef49df8',
@@ -62,10 +67,13 @@ class _UserPageState extends State<UserPage> with RouteAware {
   @override
   void initState() {
     super.initState();
-    _checkLoginStatus(); // 初始检查
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final pointsState = Provider.of<PointsState>(context, listen: false);
-      pointsState.fetchPoints();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _checkNetworkConnection();
+      await _checkLoginStatus(); // 初始检查
+      if (_isLoggedIn && _hasNetworkConnection) {
+        final pointsState = Provider.of<PointsState>(context, listen: false);
+        pointsState.fetchPoints();
+      }
     });
   }
 
@@ -87,6 +95,30 @@ class _UserPageState extends State<UserPage> with RouteAware {
   @override
   void didPopNext() {
     _checkLoginStatus(); // 返回页面时重新检查
+  }
+
+  // 检查网络连接状态
+  Future<void> _checkNetworkConnection() async {
+    try {
+      final connectivityResult = await Connectivity().checkConnectivity();
+      final hasConnection = connectivityResult != ConnectivityResult.none;
+
+      if (!mounted) return; // 提前检查mounted状态
+
+      setState(() {
+        _hasNetworkConnection = hasConnection;
+        if (!hasConnection) {
+          _networkErrorMessage = '网络连接不可用，请检查网络设置';
+        } else {
+          _networkErrorMessage = '';
+        }
+      });
+    } catch (e) {
+      // 如果无法检查网络状态，假设有网络连接
+      if (mounted) {
+        setState(() => _hasNetworkConnection = true);
+      }
+    }
   }
 
   // 优化登录状态检查：添加异常捕获，确保状态更新
@@ -134,6 +166,46 @@ class _UserPageState extends State<UserPage> with RouteAware {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
+          // 网络错误提示
+          if (!_hasNetworkConnection)
+            SliverToBoxAdapter(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.wifi_off, color: Colors.orange.shade700),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _networkErrorMessage,
+                        style: TextStyle(color: Colors.orange.shade700),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () async {
+                        await _checkNetworkConnection();
+                        if (_hasNetworkConnection && _isLoggedIn) {
+                          final pointsState = Provider.of<PointsState>(
+                            context,
+                            listen: false,
+                          );
+                          pointsState.fetchPoints();
+                        }
+                      },
+                      child: const Text('重试'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
           SliverToBoxAdapter(
             child: ProfileCard(
               isLoggedIn: _isLoggedIn,
@@ -152,9 +224,8 @@ class _UserPageState extends State<UserPage> with RouteAware {
                     scrollDirection: Axis.horizontal,
                     itemCount: achievements.length,
                     padding: const EdgeInsets.only(left: 16),
-                    itemBuilder:
-                        (context, index) =>
-                            AchievementCard(achievement: achievements[index]),
+                    itemBuilder: (context, index) =>
+                        AchievementCard(achievement: achievements[index]),
                   ),
                 ),
               ),
@@ -206,83 +277,86 @@ class _UserPageState extends State<UserPage> with RouteAware {
   Widget _buildProfileCard() {
     return _isLoggedIn
         ? Stack(
-          children: [
-            Image.network(
-              userInfo['background']! as String,
-              height: 200,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [Colors.black.withOpacity(0.6), Colors.transparent],
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    CircleAvatar(
-                      backgroundImage: NetworkImage(
-                        userInfo['avatar']! as String,
-                      ),
-                      radius: 40,
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          userInfo['nickname']! as String,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
+            children: [
+              Image.network(
+                userInfo['background']! as String,
+                height: 200,
+                width: double.infinity,
+                fit: BoxFit.cover,
+              ),
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Colors.black.withOpacity(0.6),
+                        Colors.transparent,
                       ],
                     ),
-                    Text('🎂 ${userInfo['birthday']}'),
-                    const SizedBox(height: 8),
-                    Text(
-                      userInfo['bio']! as String,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+                  ),
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        backgroundImage: NetworkImage(
+                          userInfo['avatar']! as String,
+                        ),
+                        radius: 40,
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            userInfo['nickname']! as String,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                      ),
+                      Text('🎂 ${userInfo['birthday']}'),
+                      const SizedBox(height: 8),
+                      Text(
+                        userInfo['bio']! as String,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
-        )
+            ],
+          )
         : Container(
-          height: 200,
-          padding: const EdgeInsets.all(20),
-          child: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text('请登录查看个人信息'),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _login,
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 12,
+            height: 200,
+            padding: const EdgeInsets.all(20),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('请登录查看个人信息'),
+                  const SizedBox(height: 20),
+                  ElevatedButton(
+                    onPressed: _login,
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 32,
+                        vertical: 12,
+                      ),
                     ),
+                    child: const Text('立即登录'),
                   ),
-                  child: const Text('立即登录'),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
+          );
   }
 
   Widget _buildLogoutButton() {
@@ -321,27 +395,26 @@ class _UserPageState extends State<UserPage> with RouteAware {
   void _showLogoutDialog() {
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('确认退出登录？'),
-            content: const Text('退出后需要重新登录才能查看个人信息'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('取消'),
-              ),
-              TextButton(
-                onPressed: () {
-                  _logout();
-                  Navigator.pop(context);
-                },
-                child: Text(
-                  '确认退出',
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('确认退出登录？'),
+        content: const Text('退出后需要重新登录才能查看个人信息'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
           ),
+          TextButton(
+            onPressed: () {
+              _logout();
+              Navigator.pop(context);
+            },
+            child: Text(
+              '确认退出',
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -360,10 +433,9 @@ class _UserPageState extends State<UserPage> with RouteAware {
             children: [
               Icon(
                 achievement['icon'] as IconData,
-                color:
-                    achievement['unlocked']
-                        ? Theme.of(context).colorScheme.primary
-                        : Theme.of(context).colorScheme.secondary,
+                color: achievement['unlocked']
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.secondary,
                 size: 32,
               ),
               const SizedBox(height: 8),
@@ -371,10 +443,9 @@ class _UserPageState extends State<UserPage> with RouteAware {
                 achievement['name'] as String,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color:
-                      achievement['unlocked']
-                          ? Theme.of(context).colorScheme.primary
-                          : Theme.of(context).colorScheme.secondary,
+                  color: achievement['unlocked']
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.secondary,
                   fontSize: 12,
                 ),
               ),

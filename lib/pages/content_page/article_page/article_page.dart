@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:red_helper/coze_page.dart';
+import 'package:red_helper/pages/coze_page/coze_page.dart';
 import 'package:red_helper/pages/content_page/super_page/super_page.dart';
 
 class MarkdownParserPage extends StatefulWidget {
@@ -259,23 +259,94 @@ class _MarkdownParserPageState extends State<MarkdownParserPage> {
             label: '了解人物',
             icon: Icons.add,
             onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => SuperPage()),
-              );
+              // 使用更安全的导航方式
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  try {
+                    print("🔄 准备导航到SuperPage，主题: 焦裕禄");
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => SuperPage(topicName: '焦裕禄'),
+                      ),
+                    );
+                    print("✅ 导航到SuperPage成功");
+                  } catch (e) {
+                    print("❌ 导航到SuperPage失败: $e");
+                    // 显示错误提示
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('页面跳转失败: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } else {
+                  print("⚠️ Widget已销毁，跳过导航");
+                }
+              });
             },
             color: Colors.blue,
           ),
           FloatingOption(
             label: '了解兰考',
             icon: Icons.edit,
-            onTap: () => print('点击了选项二'),
+            onTap: () {
+              // 使用更安全的导航方式
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  try {
+                    print("🔄 准备导航到SuperPage，主题: 兰考");
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => SuperPage(topicName: '兰考'),
+                      ),
+                    );
+                    print("✅ 导航到SuperPage成功");
+                  } catch (e) {
+                    print("❌ 导航到SuperPage失败: $e");
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('页面跳转失败: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } else {
+                  print("⚠️ Widget已销毁，跳过导航");
+                }
+              });
+            },
             color: Colors.green,
           ),
           FloatingOption(
             label: '了解理论',
             icon: Icons.delete,
-            onTap: () => print('点击了选项三'),
+            onTap: () {
+              // 使用更安全的导航方式
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  try {
+                    print("🔄 准备导航到SuperPage，主题: 焦裕禄精神");
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => SuperPage(topicName: '焦裕禄精神'),
+                      ),
+                    );
+                    print("✅ 导航到SuperPage成功");
+                  } catch (e) {
+                    print("❌ 导航到SuperPage失败: $e");
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('页面跳转失败: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } else {
+                  print("⚠️ Widget已销毁，跳过导航");
+                }
+              });
+            },
             color: Colors.red,
           ),
         ],

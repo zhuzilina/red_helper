@@ -11,7 +11,7 @@ class ApiService {
   ApiService(this.token)
     : _dio = Dio(
         BaseOptions(
-          baseUrl: 'http://81.71.152.77:8080',
+          baseUrl: 'http://192.168.137.1:8080',
           connectTimeout: const Duration(seconds: 5),
           receiveTimeout: const Duration(seconds: 3),
         ),
@@ -30,7 +30,7 @@ class ApiService {
 
   Future<List<Friend>> getFriendRanking() async {
     try {
-      final response = await _dio.get('/statistics/pointsranking');
+      final response = await _dio.get('/api/statistics/pointsranking');
       if (response.statusCode == 200) {
         return (response.data['data'] as List)
             .map((item) => Friend.fromJson(item))
@@ -61,7 +61,7 @@ class ApiService {
 
   Future<List<PointsCategory>> getPointsDistribution() async {
     try {
-      final response = await _dio.get('/points/distribution');
+      final response = await _dio.get('/api/points/distribution');
       if (response.statusCode == 200) {
         return (response.data['data'] as List)
             .asMap() // 转换为 Map<index, value>
@@ -89,7 +89,7 @@ class ApiService {
 
   Future<List<Book>> getBookWinnow() async {
     try {
-      final response = await _dio.get('/carouse/get');
+      final response = await _dio.get('/api/carousel/get');
       if (response.statusCode == 200) {
         return (response.data['data'] as List)
             .map((item) => Book.fromJson(item))
@@ -111,7 +111,7 @@ class ApiService {
 
   Future<List<Book>> getBook() async {
     try {
-      final response = await _dio.get('/carouse/list');
+      final response = await _dio.get('/api/carousel/list');
       if (response.statusCode == 200) {
         return (response.data['data'] as List)
             .map((item) => Book.fromJson(item))
@@ -133,7 +133,7 @@ class ApiService {
 
   Future<int> getUserPoints() async {
     try {
-      final response = await _dio.get('/points/total');
+      final response = await _dio.get('/api/points/total');
       if (response.statusCode == 200) {
         return response.data['data'] as int;
       } else {
@@ -154,7 +154,7 @@ class ApiService {
 
   Future<List<DailyTask>> getDailyTask() async {
     try {
-      final response = await _dio.get('/points/DailyTask');
+      final response = await _dio.get('/api/points/DailyTask');
       if (response.statusCode == 200) {
         return (response.data['data'] as List)
             .map((item) => DailyTask.fromJson(item))
@@ -178,7 +178,7 @@ class ApiService {
   Future<int> exchangeProduct(int productId) async {
     try {
       final response = await _dio.post(
-        '/exchange',
+        '/api/exchange',
         data: {'productId': productId},
       );
       if (response.statusCode == 200) {
@@ -201,7 +201,7 @@ class ApiService {
 
   Future<bool> updateTask() async {
     try {
-      final response = await _dio.get('/points/signin');
+      final response = await _dio.get('/api/points/signin');
       if (response.statusCode == 200) {
         return true;
       } else {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:red_helper/pages/content_page/book_page/book_page.dart';
+import 'package:red_helper/pages/learn_page/widget/common/safe_image.dart';
 // import 'package:red_helper/pages/content_page/web_view/web_view_page.dart';
 
 class BookGridItem extends StatelessWidget {
@@ -32,9 +33,10 @@ class BookGridItem extends StatelessWidget {
 
   Widget _buildBookCover() {
     return Expanded(
-      child: ClipRRect(
+      child: SafeNetworkImage(
+        imageUrl: imageUrl,
+        fit: BoxFit.cover,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
-        child: Image.network(imageUrl, fit: BoxFit.cover),
       ),
     );
   }
@@ -65,7 +67,14 @@ class BookDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text(title)),
-      body: Center(child: Image.network(imageUrl)),
+      body: Center(
+        child: SafeNetworkImage(
+          imageUrl: imageUrl,
+          width: 300,
+          height: 400,
+          fit: BoxFit.contain,
+        ),
+      ),
     );
   }
 }

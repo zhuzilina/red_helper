@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 import 'package:red_helper/pages/content_page/web_view/web_view.dart';
 import 'package:red_helper/pages/learn_page/digita_pserson_float_view_home.dart';
@@ -16,6 +17,10 @@ class TripPage extends StatefulWidget {
 }
 
 class _TripPageState extends State<TripPage> {
+  // 网络连接状态
+  bool _hasNetworkConnection = true;
+  String _networkErrorMessage = '';
+
   // 模拟数据
   final List<Map<String, dynamic>> attractions = [
     {
@@ -87,6 +92,38 @@ class _TripPageState extends State<TripPage> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await _checkNetworkConnection();
+    });
+  }
+
+  // 检查网络连接状态
+  Future<void> _checkNetworkConnection() async {
+    try {
+      final connectivityResult = await Connectivity().checkConnectivity();
+      final hasConnection = connectivityResult != ConnectivityResult.none;
+
+      if (!mounted) return; // 提前检查mounted状态
+
+      setState(() {
+        _hasNetworkConnection = hasConnection;
+        if (!hasConnection) {
+          _networkErrorMessage = '网络连接不可用，请检查网络设置';
+        } else {
+          _networkErrorMessage = '';
+        }
+      });
+    } catch (e) {
+      // 如果无法检查网络状态，假设有网络连接
+      if (mounted) {
+        setState(() => _hasNetworkConnection = true);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: Stack(
@@ -103,6 +140,37 @@ class _TripPageState extends State<TripPage> {
       ),
       body: CustomScrollView(
         slivers: [
+          // 网络错误提示
+          if (!_hasNetworkConnection)
+            SliverToBoxAdapter(
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.orange.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange.shade300),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.wifi_off, color: Colors.orange.shade700),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _networkErrorMessage,
+                        style: TextStyle(color: Colors.orange.shade700),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: _checkNetworkConnection,
+                      child: const Text('重试'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
           SliverToBoxAdapter(
             child: Padding(
               padding: EdgeInsets.all(10),

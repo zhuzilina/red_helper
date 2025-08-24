@@ -17,10 +17,10 @@ class Friend {
 
   factory Friend.fromJson(Map<String, dynamic> json) {
     return Friend(
-      userid: json['userid'],
-      nikename: json['nikename'],
-      points: json['points'],
-      avatarUrl: json['avatarUrl'], // 确保后端返回的字段名匹配
+      userid: json['id'] ?? 0,
+      nikename: json['nickname'] ?? json['username'] ?? '',
+      points: json['points'] ?? 0,
+      avatarUrl: json['avatar'] ?? 'https://via.placeholder.com/50',
     );
   }
 }
@@ -38,19 +38,20 @@ class PointsCategory {
 
   factory PointsCategory.fromJson(Map<String, dynamic> json, int index) {
     return PointsCategory(
-      category: json['categoryName'],
-      points: json['points'],
+      category: json['category'] ?? '',
+      points: json['points'] ?? 0,
       color: _parseColor(
-        _getRandomElement([
-          '#FF6384', // 1. 活力珊瑚红 (原RGB 255,99,132)
-          '#FF9F40', // 2. 明亮橙 (原RGB 255,159,64)
-          '#FFCD56', // 3. 阳光黄 (原RGB 255,205,86)
-          '#4BC0C0', // 4. 热带蓝绿 (原RGB 75,192,192)
-          '#36A2EB', // 5. 宝石蓝 (原RGB 54,162,235)
-          '#9966FF', // 6. 电光紫 (原RGB 153,102,255)
-          '#FF66CC', // 7. 霓虹粉 (原RGB 255,102,204)
-        ], index),
-      ), // 颜色转换方法
+        json['color'] ??
+            _getRandomElement([
+              '#FF6384', // 1. 活力珊瑚红 (原RGB 255,99,132)
+              '#FF9F40', // 2. 明亮橙 (原RGB 255,159,64)
+              '#FFCD56', // 3. 阳光黄 (原RGB 255,205,86)
+              '#4BC0C0', // 4. 热带蓝绿 (原RGB 75,192,192)
+              '#36A2EB', // 5. 宝石蓝 (原RGB 54,162,235)
+              '#9966FF', // 6. 电光紫 (原RGB 153,102,255)
+              '#FF66CC', // 7. 霓虹粉 (原RGB 255,102,204)
+            ], index),
+      ),
     );
   }
 
@@ -94,12 +95,12 @@ class Book {
   });
   factory Book.fromJson(Map<String, dynamic> json) {
     return Book(
-      bookid: json['id'],
-      title: json['title'],
-      author: 'null',
-      coverUrl: json['imgUrl'],
-      description: 'null',
-      category: 'null',
+      bookid: json['id'] ?? 0,
+      title: json['title'] ?? '',
+      author: json['author'] ?? '',
+      coverUrl: json['cover'] ?? '',
+      description: json['description'] ?? '',
+      category: json['category'] ?? '',
     );
   }
 }
@@ -134,10 +135,10 @@ class DailyTask {
   DailyTask(this.id, this.title, this.points, this.completed);
   factory DailyTask.fromJson(Map<String, dynamic> json) {
     return DailyTask(
-      json['points']['id'],
-      json['points']['commit'],
-      json['points']['value'],
-      json['isDone'] == 0 ? false : true,
+      json['id'] ?? 0,
+      json['title'] ?? '',
+      json['points'] ?? 0,
+      json['is_completed'] == 1 ? true : false,
     );
   }
 }
@@ -163,8 +164,9 @@ class CozeApiRequest {
       'user_id': userId,
       'stream': stream,
       'auto_save_history': autoSaveHistory,
-      'additional_messages':
-          additionalMessages.map((msg) => msg.toJson()).toList(),
+      'additional_messages': additionalMessages
+          .map((msg) => msg.toJson())
+          .toList(),
     };
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:red_helper/repository/models/model.dart';
 import 'package:red_helper/pages/learn_page/widget/carousel/carousel_item.dart';
+import 'package:red_helper/pages/learn_page/widget/common/safe_image.dart';
 
 class BookCarousel extends StatelessWidget {
   final List<Book> books;
@@ -20,7 +21,10 @@ class BookCarousel extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
     if (books.isEmpty) {
-      return Image.asset('assets/images/bg.png', fit: BoxFit.cover);
+      return SafeAssetImage(
+        assetPath: 'assets/images/bg.png',
+        fit: BoxFit.cover,
+      );
     }
     return PageView.builder(
       itemCount: books.length,

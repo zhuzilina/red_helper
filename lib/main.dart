@@ -7,11 +7,17 @@ import 'package:red_helper/main_screen.dart';
 import 'package:red_helper/pages/auth_page/login_page.dart';
 import 'package:red_helper/repository/api/api.dart';
 import 'package:red_helper/route/routes.dart';
+import 'package:red_helper/utils/global_oauth_manager.dart';
 import 'providers/task_state.dart';
 import 'providers/points_state.dart';
+import 'providers/question_answer_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 初始化全局OAuth管理器
+  final oAuthManager = GlobalOAuthManager();
+  await oAuthManager.initialize();
 
   final prefs = await SharedPreferences.getInstance();
   final token = prefs.getString('token') ?? '';
@@ -30,6 +36,7 @@ void main() async {
               pointsState ?? PointsState(apiService),
         ),
         ChangeNotifierProvider(create: (_) => MsgState()),
+        ChangeNotifierProvider(create: (_) => QuestionAnswerProvider()),
       ],
       child: const MyApp(),
     ),
