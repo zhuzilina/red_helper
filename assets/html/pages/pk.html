@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>好友匹配</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: manipulation; /* 优化移动端触摸 */
+        }
+
+        body {
+            background: linear-gradient(135deg, #FF6B6B, #FF8E53);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: #FFF;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .container {
+            text-align: center;
+            padding: 2vh 5vw;
+            width: 100%;
+            max-width: 600px;
+            margin-top: 5vh;
+        }
+
+        /* 匹配标题 */
+        .matching-title {
+            font-size: clamp(1.5rem, 6vw, 2rem);
+            margin-bottom: 4vh;
+            animation: pulse 1.5s infinite;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        /* 头像区域 */
+        .avatars {
+            position: relative;
+            width: 80vw;
+            max-width: 400px;
+            height: 30vh;
+            min-height: 200px;
+            margin: 3vh auto;
+        }
+
+        .user-avatar,
+        .opponent-avatar {
+            width: 20vw;
+            height: 20vw;
+            min-width: 80px;
+            min-height: 80px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.8);
+            position: absolute;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            object-fit: cover;
+        }
+
+        .user-avatar {
+            left: 5%;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .opponent-avatar {
+            right: 5%;
+            top: 50%;
+            transform: translateY(-50%) scale(0.5);
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        /* 加载动画 */
+        .loading {
+            width: 15vw;
+            height: 15vw;
+            min-width: 60px;
+            min-height: 60px;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .loading-circle {
+            fill: none;
+            stroke: rgba(255,255,255,0.8);
+            stroke-width: 6;
+            stroke-dasharray: 100;
+            stroke-dashoffset: 100;
+            animation: dash 1.8s ease-in-out infinite;
+        }
+
+        /* 匹配成功效果 */
+        .matched .opponent-avatar {
+            opacity: 1;
+            transform: translateY(-50%) scale(1);
+        }
+
+        .matched .loading {
+            display: none;
+        }
+
+        /* 取消按钮 */
+        .cancel-btn {
+            padding: 2vh 8vw;
+            background: rgba(255,255,255,0.15);
+            border: 2px solid rgba(255,255,255,0.8);
+            border-radius: 40px;
+            font-size: clamp(1rem, 4.5vw, 1.2rem);
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 5vh;
+            backdrop-filter: blur(4px);
+        }
+
+        .cancel-btn:active {
+            transform: scale(0.95);
+            background: rgba(255,255,255,0.25);
+        }
+
+        /* 匹配成功提示 */
+        .success-text {
+            font-size: clamp(1.2rem, 5vw, 1.5rem);
+            margin-top: 3vh;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .show-text {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* 进度条 */
+        .progress-bar {
+            width: 60vw;
+            max-width: 300px;
+            height: 6px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+            margin: 3vh auto;
+        }
+
+        .progress {
+            height: 100%;
+            width: 0;
+            background: #FFD93D;
+            border-radius: 3px;
+            transition: width 0.3s;
+            box-shadow: 0 2px 8px rgba(255,217,61,0.3);
+        }
+
+        /* 动画 */
+        @keyframes dash {
+            to { stroke-dashoffset: 0; }
+            50% { stroke-dashoffset: -100; }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.9; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.9; }
+        }
+
+        /* 移动端适配 */
+        @media (max-width: 480px) {
+            .avatars {
+                height: 25vh;
+                min-height: 160px;
+            }
+
+            .cancel-btn {
+                padding: 12px 25px;
+            }
+
+            .progress-bar {
+                height: 4px;
+            }
+        }
+
+        @media (max-width: 320px) {
+            .user-avatar,
+            .opponent-avatar {
+                min-width: 70px;
+                min-height: 70px;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1 class="matching-title">正在寻找对手🔥</h1>
+
+    <div class="avatars">
+        <img src="https://picsum.photos/200/150?random=1" class="user-avatar" alt="我的头像">
+        <svg class="loading" viewBox="0 0 50 50">
+            <circle class="loading-circle" cx="25" cy="25" r="20"/>
+        </svg>
+        <img src="https://picsum.photos/200/150?random=2" class="opponent-avatar" alt="对手头像">
+    </div>
+
+    <div class="progress-bar">
+        <div class="progress"></div>
+    </div>
+
+    <div class="success-text">✨ 匹配成功！</div>
+
+    <button class="cancel-btn" onclick="cancelMatching()">取消匹配</button>
+</div>
+
+<script>
+    // 模拟匹配过程
+    let progress = 0;
+    const progressBar = document.querySelector('.progress');
+    const avatars = document.querySelector('.avatars');
+    const successText = document.querySelector('.success-text');
+    const matchingTitle = document.querySelector('.matching-title');
+
+    // 加速匹配过程：2秒内完成
+    const matching = setInterval(() => {
+        progress += 20; // 每次增加20%
+        progressBar.style.width = progress + '%';
+
+        if(progress >= 100) {
+            clearInterval(matching);
+            matchSuccess();
+        }
+    }, 400); // 每400毫秒更新一次
+
+    // 匹配成功
+    function matchSuccess() {
+        avatars.classList.add('matched');
+        successText.classList.add('show-text');
+
+        // 添加标题变化动画
+        matchingTitle.textContent = "匹配成功！";
+        matchingTitle.style.animation = "none";
+        matchingTitle.style.transform = "scale(1.1)";
+        matchingTitle.style.transition = "all 0.5s ease";
+
+        // 添加开始PK按钮
+        const cancelBtn = document.querySelector('.cancel-btn');
+        cancelBtn.textContent = "开始PK";
+        cancelBtn.onclick = startPK;
+    }
+
+    // 开始PK
+    function startPK() {
+        // 添加点击反馈
+        const btn = document.querySelector('.cancel-btn');
+        btn.style.transform = "scale(0.95)";
+        btn.style.background = "rgba(255,255,255,0.3)";
+
+        // 添加加载效果
+        const container = document.querySelector('.container');
+        container.innerHTML = `
+            <div style="margin-top: 30%;">
+                <svg width="60" height="60" viewBox="0 0 50 50" style="margin: 0 auto;">
+                    <circle cx="25" cy="25" r="20" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="100" stroke-dashoffset="100">
+                        <animate attributeName="stroke-dashoffset" from="100" to="0" dur="1.5s" repeatCount="indefinite" />
+                    </circle>
+                </svg>
+                <p style="margin-top: 20px; font-size: 1.2rem;">加载中...</p>
+            </div>
+        `;
+
+        // 模拟加载后跳转
+        setTimeout(() => {
+            // 此处可替换为实际跳转逻辑
+            window.location.href = 'pk.html';
+        }, 1500);
+    }
+
+    // 取消匹配
+    function cancelMatching() {
+        clearInterval(matching);
+        if(confirm('确定要取消匹配吗？')) {
+            window.location.reload();
+        }
+    }
+
+    // 移动端点击优化
+    document.addEventListener('touchstart', function(){}, {passive: true});
+</script>
+</body>
+</html>

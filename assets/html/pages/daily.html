@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+  <title>每日答题</title>
+  <link href="https://s4.zstatic.net/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary-red: #e60000;
+      --dark-red: #b30000;
+      --light-red: #ff6666;
+      --pale-red: #ffe6e6;
+      --pure-white: #ffffff;
+      --off-white: #f8f9fa;
+      --dark-text: #222222;
+      --light-gray: #e0e0e0;
+    }
+
+    body {
+      background: var(--pure-white);
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", STHeiti, sans-serif;
+      color: var(--dark-text);
+      transition: all 0.3s ease;
+    }
+
+    .status-bar {
+      background: var(--pure-white);
+      padding: 12px 20px;
+      border: 1px solid var(--light-red);
+      margin: 20px 16px 10px;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(230, 0, 0, 0.06);
+    }
+
+    #currentProgress {
+      color: var(--primary-red);
+      font-weight: 600;
+    }
+
+    #timerDisplay {
+      color: var(--primary-red);
+      font-weight: 600;
+    }
+
+    .question-card {
+      background: var(--pure-white);
+      border-radius: 14px;
+      box-shadow: 0 5px 15px rgba(230, 0, 0, 0.08);
+      padding: 28px;
+      margin: 16px;
+      border: 1px solid var(--light-red);
+      transition: transform 0.3s ease;
+    }
+
+    .question-card:hover {
+      transform: translateY(-2px);
+    }
+
+    #questionType {
+      color: var(--primary-red);
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      font-size: 15px;
+      margin-bottom: 15px;
+    }
+
+    #questionTitle {
+      color: var(--dark-text);
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.6;
+      margin-bottom: 25px;
+    }
+
+    .option-item {
+      background: var(--off-white);
+      border: 2px solid var(--light-gray);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 14px;
+      transition: all 0.25s ease;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .option-item:hover {
+      transform: translateX(3px);
+      border-color: var(--light-red);
+    }
+
+    .option-item.active {
+      background: var(--pale-red);
+      border-color: var(--primary-red);
+      transform: translateX(3px);
+      box-shadow: 0 3px 8px rgba(230, 0, 0, 0.1);
+    }
+
+    .option-item.active:hover {
+      border-color: var(--primary-red);
+    }
+
+    .progress-container {
+      height: 6px;
+      background: var(--light-gray);
+      margin: 0 16px;
+      border-radius: 3px;
+    }
+
+    .progress-bar {
+      background: var(--primary-red);
+      border-radius: 3px;
+      box-shadow: 0 0 10px rgba(230, 0, 0, 0.2);
+    }
+
+    .control-bar {
+      background: var(--pure-white);
+      padding: 18px;
+      border-top: 1px solid var(--light-red);
+    }
+
+    .btn-outline-primary {
+      color: var(--primary-red);
+      border-color: var(--primary-red);
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .btn-outline-primary:hover {
+      color: var(--pure-white);
+      background: var(--primary-red);
+      border-color: var(--primary-red);
+    }
+
+    .btn-primary {
+      background: var(--primary-red);
+      border-color: var(--primary-red);
+      font-weight: 500;
+      transition: all 0.2s ease;
+      min-width: 100px;
+    }
+
+    .btn-primary:hover, .btn-primary:focus {
+      background: var(--dark-red);
+      border-color: var(--dark-red);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(230, 0, 0, 0.3);
+    }
+
+    #prevBtn {
+      margin-right: 10px;
+    }
+
+    /* 结果区域样式 */
+    .result-area {
+      background: var(--pure-white);
+      border-radius: 14px;
+      box-shadow: 0 5px 15px rgba(230, 0, 0, 0.08);
+      padding: 28px;
+      margin: 16px;
+      border: 1px solid var(--light-red);
+      display: none; /* 初始隐藏 */
+    }
+
+    .result-header {
+      background: var(--primary-red);
+      color: var(--pure-white);
+      padding: 20px;
+      text-align: center;
+      border-radius: 10px 10px 0 0;
+      margin: -28px -28px 20px -28px;
+    }
+
+    .result-header h5 {
+      font-weight: 600;
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .result-content {
+      text-align: center;
+    }
+
+    .result-content .h2 {
+      color: var(--primary-red);
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .result-badge {
+      font-size: 14px;
+      font-weight: 500;
+      padding: 8px 16px;
+      border-radius: 20px;
+    }
+
+    .result-badge-success {
+      background: var(--primary-red) !important;
+      color: white;
+    }
+
+    .result-badge-danger {
+      background: #495057 !important;
+      color: white;
+    }
+
+    .result-progress {
+      height: 10px;
+      border-radius: 5px;
+      background: #e9ecef;
+      margin: 20px 0;
+    }
+
+    .result-progress-bar {
+      height: 100%;
+      border-radius: 5px;
+      background: var(--primary-red);
+    }
+
+    @media (max-width: 576px) {
+      .status-bar {
+        padding: 10px 16px;
+        margin: 16px 10px 8px;
+      }
+
+      .question-card, .result-area {
+        padding: 22px;
+        margin: 14px;
+      }
+
+      #questionTitle {
+        font-size: 16px;
+      }
+
+      .control-bar {
+        padding: 16px;
+      }
+
+      .btn {
+        padding: 6px 12px;
+        font-size: 14px;
+      }
+    }
+
+    /* 进度条动画效果 */
+    .progress-container {
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-bar {
+      position: relative;
+    }
+
+    .progress-bar::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 30%;
+      background: rgba(255, 255, 255, 0.4);
+      animation: move 1.5s ease-in-out infinite;
+    }
+
+    @keyframes move {
+      from { left: -30%; }
+      to { left: 100%; }
+    }
+
+    .pulse {
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+      100% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+<div class="container-fluid vh-100 d-flex flex-column">
+  <!-- 状态栏 -->
+  <div class="status-bar d-flex justify-content-between align-items-center shadow-sm">
+    <div id="currentProgress">1/5</div>
+    <div id="timerDisplay">剩余时间 12:00</div>
+  </div>
+
+  <!-- 题目区域 -->
+  <main class="flex-grow-1 overflow-auto">
+    <div class="question-card" id="questionCard">
+      <!-- 动态标题 -->
+      <div class="text-secondary mb-3" id="questionType"></div>
+      <h4 class="mb-4" style="line-height: 1.5; color: #333;" id="questionTitle"></h4>
+      <!-- 动态选项容器 -->
+      <div class="options" id="optionsContainer"></div>
+    </div>
+
+    <!-- 结果区域 -->
+    <div class="result-area" id="resultArea">
+      <div class="result-header">
+        <h5>答题统计</h5>
+      </div>
+      <div class="result-content">
+        <div class="row mb-4">
+          <div class="col-6">
+            <div class="h2" id="correctRate">0%</div>
+            <small class="text-muted">正确率</small>
+          </div>
+          <div class="col-6">
+            <div class="h2" id="usedTime">00:00</div>
+            <small class="text-muted">用时</small>
+          </div>
+        </div>
+        <div class="result-progress">
+          <div class="result-progress-bar" id="successBar" style="width: 0%"></div>
+        </div>
+        <div class="d-flex justify-content-center gap-3">
+          <span class="result-badge result-badge-success" id="correctCountBadge">正确 0</span>
+          <span class="result-badge result-badge-danger" id="wrongCountBadge">错误 5</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- 进度条 -->
+  <div class="progress-container">
+    <div class="progress-bar" style="width: 20%; height: 100%;"></div>
+  </div>
+
+  <!-- 控制栏 -->
+  <div class="control-bar d-flex justify-content-between">
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-primary" id="prevBtn" disabled>上一题</button>
+      <button class="btn btn-primary pulse" id="nextBtn">下一题</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://s4.zstatic.net/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+<script>
+  // 题目数据（5题）
+  const questions = [
+    {
+      type: '单选题',
+      title: '中国过去一切革命斗争成效甚少的基本原因是（  ）',
+      options: [
+        'A. 革命党没有正确的理论指导',
+        'B. 不能团结真正的朋友，以攻击真正的敌人',
+        'C. 群众没有积极参与革命',
+        'D. 帝国主义势力过于强大'
+      ],
+      answer: 1 // B
+    },
+    {
+      type: '单选题',
+      title: '革命党在革命中的重要作用是（  ）',
+      options: [
+        'A. 发动群众进行斗争',
+        'B. 为革命提供资金支持',
+        'C. 作为群众的向导',
+        'D. 制定革命的具体策略'
+      ],
+      answer: 2 // C
+    },
+    {
+      type: '单选题',
+      title: '地主阶级和买办阶级在半殖民地中国的地位是（  ）',
+      options: [
+        'A. 独立发展的阶级',
+        'B. 代表先进生产关系的阶级',
+        'C. 国际资产阶级的附庸',
+        'D. 推动中国生产力发展的阶级'
+      ],
+      answer: 2 // C
+    },
+    {
+      type: '单选题',
+      title: '在中国，代表最落后和最反动生产关系，阻碍中国生产力发展的阶级是（  ）',
+      options: [
+        'A. 民族资产阶级',
+        'B. 小资产阶级',
+        'C. 地主阶级和买办阶级',
+        'D. 无产阶级'
+      ],
+      answer: 2 // C
+    },
+    {
+      type: '单选题',
+      title: '大地主阶级和大买办阶级的政治代表是（  ）',
+      options: [
+        'A. 国家主义派和国民党左派',
+        'B. 国家主义派和国民党右派',
+        'C. 共产党和国民党左派',
+        'D. 共产党和国民党右派'
+      ],
+      answer: 1 // B
+    }
+  ];
+
+  // 系统状态
+  let currentQ = 0;
+  let userAnswers = new Array(5).fill(-1); // 初始未选答案
+  let startTime = Date.now();
+  let timer;
+
+  // 动态渲染题目函数
+  function renderQuestion() {
+    const currentQuestion = questions[currentQ];
+    const questionType = document.getElementById('questionType');
+    const questionTitle = document.getElementById('questionTitle');
+    const optionsContainer = document.getElementById('optionsContainer');
+
+    // 更新题目类型
+    questionType.textContent = currentQuestion.type;
+
+    // 更新题目标题
+    questionTitle.textContent = currentQuestion.title;
+
+    // 生成选项HTML
+    let optionsHtml = currentQuestion.options.map((option, index) =>
+            `<div class="option-item" data-index="${index}">${option}</div>`
+    ).join('');
+
+    // 渲染选项
+    optionsContainer.innerHTML = optionsHtml;
+
+    // 绑定选项点击事件
+    document.querySelectorAll('.option-item').forEach(opt => {
+      opt.addEventListener('click', function() {
+        document.querySelectorAll('.option-item').forEach(o => o.classList.remove('active'));
+        this.classList.add('active');
+        userAnswers[currentQ] = parseInt(this.dataset.index);
+
+        // 新增：选项选择后延迟0.5秒自动跳转下一题（最后一题不跳转）
+        if (currentQ < questions.length - 1) {
+          setTimeout(() => {
+            document.getElementById('nextBtn').click();
+          }, 500);
+        }
+      });
+    });
+  }
+
+  // 更新界面状态函数
+  function updateView() {
+    // 更新进度
+    document.getElementById('currentProgress').textContent = `${currentQ + 1}/${questions.length}`;
+    document.querySelector('.progress-bar').style.width = `${((currentQ + 1)/questions.length)*100}%`;
+
+    // 更新按钮状态
+    document.getElementById('prevBtn').disabled = currentQ === 0;
+    const nextBtn = document.getElementById('nextBtn');
+    nextBtn.textContent = currentQ === questions.length - 1 ? '提交答案' : '下一题';
+
+    // 添加提交按钮的脉冲动画效果
+    if (currentQ === questions.length - 1) {
+      nextBtn.classList.add('pulse');
+    } else {
+      nextBtn.classList.remove('pulse');
+    }
+
+    // 渲染当前题目
+    renderQuestion();
+
+    // 恢复选项选中状态（如果有答案）
+    if(userAnswers[currentQ] !== -1) {
+      document.querySelectorAll('.option-item')[userAnswers[currentQ]].classList.add('active');
+    }
+  }
+
+  // 初始化计时器
+  function initTimer() {
+    let remaining = 180; // 12分钟
+    const formatTime = (s) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+
+    timer = setInterval(() => {
+      remaining--;
+      document.getElementById('timerDisplay').textContent = `剩余时间 ${formatTime(remaining)}`;
+      if (remaining <= 0) submitAnswer();
+      else if (remaining === 60) { // 最后一分钟时间变为红色
+        document.getElementById('timerDisplay').style.color = 'var(--primary-red)';
+        document.getElementById('timerDisplay').classList.add('pulse');
+      }
+    }, 1000);
+    updateView();
+  }
+
+  // 提交答案处理
+  function submitAnswer() {
+    clearInterval(timer);
+    const timeUsed = Math.floor((Date.now() - startTime) / 1000);
+    const correctCount = userAnswers.filter((ans, i) => ans === questions[i].answer).length;
+    const accuracy = Math.round((correctCount / questions.length) * 100);
+
+    // 计时器动画效果
+    document.getElementById('timerDisplay').classList.remove('pulse');
+
+    // 更新统计结果
+    const minutes = Math.floor(timeUsed / 60).toString().padStart(2, '0');
+    const seconds = (timeUsed % 60).toString().padStart(2, '0');
+
+    document.getElementById('correctRate').textContent = `${accuracy}%`;
+    document.getElementById('usedTime').textContent = `${minutes}:${seconds}`;
+    document.getElementById('successBar').style.width = `${accuracy}%`;
+    document.getElementById('correctCountBadge').textContent = `正确 ${correctCount}`;
+    document.getElementById('wrongCountBadge').textContent = `错误 ${questions.length - correctCount}`;
+
+    // 显示结果区域
+    document.getElementById('questionCard').style.display = 'none';
+    document.getElementById('resultArea').style.display = 'block';
+    document.querySelector('.progress-container').style.display = 'none';
+    document.querySelector('.control-bar').style.display = 'none';
+  }
+
+  // 事件监听
+  document.getElementById('nextBtn').addEventListener('click', () => {
+    if(userAnswers[currentQ] === -1 && currentQ < questions.length - 1) {
+      alert('请先选择答案！');
+      return;
+    }
+
+    if(currentQ < questions.length - 1) {
+      currentQ++;
+      updateView();
+    } else {
+      submitAnswer();
+    }
+  });
+
+  document.getElementById('prevBtn').addEventListener('click', () => {
+    if(currentQ > 0) {
+      currentQ--;
+      updateView();
+    }
+  });
+
+  // 初始化
+  initTimer();
+</script>
+</body>
+</html>

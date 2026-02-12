@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>张四 · 个人主页</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --cinnabar: #E54B3C; /* 朱砂红 */
+      --vermilion: #D64933; /* 朱红深色 */
+      --gold: #D4AF37; /* 金箔色 */
+      --ocher: #BF8B2E; /* 赭石色 */
+      --beige: #F5EBDC; /* 宣纸色 */
+      --bamboo: #776B5B; /* 竹青色 */
+      --text-dark: #4A4030; /* 深色文本 */
+      --shadow-light: 0 2px 8px rgba(0, 0, 0, 0.08);
+      --border-radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #fffbf6;
+      font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      color: var(--text-dark);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 10px;
+    }
+
+    /* 状态栏 */
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 15px;
+      background: #fff;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: var(--shadow-light);
+      border-bottom: 1px solid #e9e1d8;
+      color: var(--vermilion);
+      font-weight: 600;
+    }
+
+    /* 用户信息区 */
+    .user-profile {
+      background: var(--cinnabar);
+      padding: 20px 15px;
+      position: relative;
+      color: #fff;
+      margin-top: 10px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow-light);
+    }
+
+    .user-header {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 15px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .avatar-container {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      flex-shrink: 0;
+      background: #fff;
+      border-radius: 50%;
+      padding: 3px;
+      border: 2px solid var(--gold);
+    }
+
+    .avatar {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    .user-info {
+      flex-grow: 1;
+    }
+
+    .user-info h1 {
+      margin: 0 0 8px 0;
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: #ffffff;
+      font-family: "KaiTi", "STKaiti", serif;
+    }
+
+    .user-id {
+      font-size: 1.0rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(0,0,0,0.2);
+      padding: 6px 12px;
+      border-radius: 30px;
+      color: #fff;
+      font-weight: 500;
+    }
+
+    .user-bio {
+      font-size: 1.05rem;
+      margin: 0 0 20px 0;
+      padding-left: 8px;
+      border-left: 3px solid var(--gold);
+      color: rgba(255,255,255,0.95);
+      position: relative;
+      z-index: 2;
+      font-weight: 500;
+    }
+
+    /* 操作按钮 - 实心朱红风格 */
+    .action-buttons {
+      display: flex;
+      gap: 15px;
+      margin-top: 15px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .action-btn {
+      background: var(--vermilion);
+      border: none;
+      color: #fff;
+      padding: 12px 15px;
+      border-radius: 40px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      cursor: pointer;
+      flex: 1;
+      text-align: center;
+    }
+
+    .action-btn:active {
+      background: #c03a25;
+    }
+
+    /* 统计卡片 */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      padding: 15px;
+      background: #fff;
+      border-radius: var(--border-radius);
+      margin: 15px 0;
+      box-shadow: var(--shadow-light);
+      border: 1px solid #e9e1d8;
+    }
+
+    .stat-item {
+      text-align: center;
+      padding: 8px;
+      position: relative;
+    }
+
+    .stat-item:nth-child(4n)::after {
+      display: none;
+    }
+
+    .stat-number {
+      font-size: 1.3rem;
+      color: var(--cinnabar);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 0.9rem;
+      color: var(--bamboo);
+      font-weight: 500;
+    }
+
+    /* 帖子部分 */
+    .posts-section {
+      margin-top: 10px;
+    }
+
+    .section-title {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin: 0 0 15px 8px;
+      color: var(--ocher);
+      font-family: "KaiTi", "STKaiti", serif;
+    }
+
+    .post-card {
+      background: #fff;
+      border-radius: var(--border-radius);
+      padding: 15px;
+      margin-bottom: 15px;
+      box-shadow: var(--shadow-light);
+      position: relative;
+      border: 1px solid #e9e1d8;
+    }
+
+    .post-meta {
+      color: var(--bamboo);
+      font-size: 0.95rem;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      position: relative;
+      font-weight: 500;
+    }
+
+    .post-meta i {
+      margin-right: 6px;
+      color: var(--cinnabar);
+    }
+
+    .post-image {
+      width: 100%;
+      height: 200px;
+      border-radius: 8px;
+      object-fit: cover;
+      margin: 10px 0;
+    }
+
+    .post-title {
+      font-size: 1.4rem;
+      margin: 12px 0 8px;
+      color: var(--vermilion);
+      font-weight: 700;
+      font-family: "KaiTi", "STKaiti", serif;
+    }
+
+    .post-description {
+      color: var(--text-dark);
+      font-size: 1.05rem;
+      line-height: 1.6;
+      margin: 10px 0;
+    }
+
+    .post-interaction {
+      display: flex;
+      gap: 12px;
+      margin-top: 15px;
+      justify-content: flex-end;
+    }
+
+    .interaction-item {
+      background: #f9f5f0;
+      border-radius: 30px;
+      padding: 6px 14px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--bamboo);
+      font-weight: 500;
+    }
+
+    .interaction-item span {
+      color: var(--cinnabar);
+      font-weight: 700;
+      font-size: 1.05rem;
+    }
+    /* 响应式调整 */
+    @media (max-width: 480px) {
+      .avatar-container {
+        width: 70px;
+        height: 70px;
+      }
+
+      .user-info h1 {
+        font-size: 1.6rem;
+      }
+
+      .post-image {
+        height: 180px;
+      }
+
+      .action-btn {
+        padding: 10px 12px;
+        font-size: 1.0rem;
+      }
+
+      .user-bio {
+        font-size: 0.95rem;
+      }
+    }
+
+    @media (max-width: 375px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+
+      .stat-item::after {
+        display: none;
+      }
+
+      .stat-number {
+        font-size: 1.2rem;
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <!-- 用户信息区 -->
+  <section class="user-profile">
+    <div class="user-header">
+      <div class="avatar-container">
+        <img class="avatar" src="http://121.199.16.109:8080/2025/04/16/d32a6c85-7d19-47d7-82dd-b6b2899de6c2.jpg" alt="头像">
+      </div>
+      <div class="user-info">
+        <h1>张四</h1>
+        <div class="user-id">
+          <i class="fas fa-id-card"></i>ID：1
+        </div>
+      </div>
+    </div>
+    <p class="user-bio">书山有路勤为径，学海无涯苦作舟。</p>
+    <div class="action-buttons">
+      <button class="action-btn">
+        <i class="fas fa-heart"></i> 加关注
+      </button>
+      <button class="action-btn">
+        <i class="fas fa-envelope"></i> 发私信
+      </button>
+    </div>
+  </section>
+
+  <!-- 统计信息 -->
+  <div class="stats-grid">
+    <div class="stat-item">
+      <div class="stat-number">1</div>
+      <div class="stat-label">获赞</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">3</div>
+      <div class="stat-label">关注</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">1</div>
+      <div class="stat-label">粉丝</div>
+    </div>
+    <div class="stat-item">
+      <div class="stat-number">1</div>
+      <div class="stat-label">帖子</div>
+    </div>
+  </div>
+
+  <!-- 帖子区 -->
+  <section class="posts-section">
+    <h2 class="section-title">旅途佳作</h2>
+
+    <a href="5.html" style="text-decoration: none; display: block;">
+      <div class="post-card">
+        <div class="post-meta">
+          <i class="far fa-clock"></i>发布于：10小时前
+        </div>
+        <img class="post-image" src="https://tse2-mm.cn.bing.net/th/id/OIP-C.OoE18Fp4r5TgJHd32JmaOQHaE8?w=273&h=182&c=7&r=0&o=5&dpr=1.2&pid=1.7" alt="山水作品">
+        <h3 class="post-title">丹霞奇峰映碧水</h3>
+        <p class="post-description">山峦叠翠，云雾缭绕，碧水如镜。小舟悠然滑过水面，倒映着丹霞奇峰，远山如黛，近水含烟。</p>
+        <div class="post-interaction">
+          <div class="interaction-item">
+            <i class="far fa-comment"></i> <span>8</span>
+          </div>
+          <div class="interaction-item">
+            <i class="fas fa-heart"></i> <span>12</span>
+          </div>
+        </div>
+      </div>
+    </a>
+    <a href="5.html" style="text-decoration: none; display: block;">
+      <div class="post-card">
+        <div class="post-meta">
+          <i class="far fa-clock"></i>发布于：10小时前
+        </div>
+        <img class="post-image" src="https://tse2-mm.cn.bing.net/th/id/OIP-C.OoE18Fp4r5TgJHd32JmaOQHaE8?w=273&h=182&c=7&r=0&o=5&dpr=1.2&pid=1.7" alt="山水作品">
+        <h3 class="post-title">丹霞奇峰映碧水</h3>
+        <p class="post-description">山峦叠翠，云雾缭绕，碧水如镜。小舟悠然滑过水面，倒映着丹霞奇峰，远山如黛，近水含烟。</p>
+        <div class="post-interaction">
+          <div class="interaction-item">
+            <i class="far fa-comment"></i> <span>8</span>
+          </div>
+          <div class="interaction-item">
+            <i class="fas fa-heart"></i> <span>12</span>
+          </div>
+        </div>
+      </div>
+    </a>
+    <a href="5.html" style="text-decoration: none; display: block;">
+      <div class="post-card">
+        <div class="post-meta">
+          <i class="far fa-clock"></i>发布于：10小时前
+        </div>
+        <img class="post-image" src="https://tse2-mm.cn.bing.net/th/id/OIP-C.OoE18Fp4r5TgJHd32JmaOQHaE8?w=273&h=182&c=7&r=0&o=5&dpr=1.2&pid=1.7" alt="山水作品">
+        <h3 class="post-title">丹霞奇峰映碧水</h3>
+        <p class="post-description">山峦叠翠，云雾缭绕，碧水如镜。小舟悠然滑过水面，倒映着丹霞奇峰，远山如黛，近水含烟。</p>
+        <div class="post-interaction">
+          <div class="interaction-item">
+            <i class="far fa-comment"></i> <span>8</span>
+          </div>
+          <div class="interaction-item">
+            <i class="fas fa-heart"></i> <span>12</span>
+          </div>
+        </div>
+      </div>
+    </a>
+    <a href="5.html" style="text-decoration: none; display: block;">
+      <div class="post-card">
+        <div class="post-meta">
+          <i class="far fa-clock"></i>发布于：10小时前
+        </div>
+        <img class="post-image" src="https://tse2-mm.cn.bing.net/th/id/OIP-C.OoE18Fp4r5TgJHd32JmaOQHaE8?w=273&h=182&c=7&r=0&o=5&dpr=1.2&pid=1.7" alt="山水作品">
+        <h3 class="post-title">丹霞奇峰映碧水</h3>
+        <p class="post-description">山峦叠翠，云雾缭绕，碧水如镜。小舟悠然滑过水面，倒映着丹霞奇峰，远山如黛，近水含烟。</p>
+        <div class="post-interaction">
+          <div class="interaction-item">
+            <i class="far fa-comment"></i> <span>8</span>
+          </div>
+          <div class="interaction-item">
+            <i class="fas fa-heart"></i> <span>12</span>
+          </div>
+        </div>
+      </div>
+    </a>
+    <a href="5.html" style="text-decoration: none; display: block;">
+      <div class="post-card">
+        <div class="post-meta">
+          <i class="far fa-clock"></i>发布于：10小时前
+        </div>
+        <img class="post-image" src="https://tse2-mm.cn.bing.net/th/id/OIP-C.OoE18Fp4r5TgJHd32JmaOQHaE8?w=273&h=182&c=7&r=0&o=5&dpr=1.2&pid=1.7" alt="山水作品">
+        <h3 class="post-title">丹霞奇峰映碧水</h3>
+        <p class="post-description">山峦叠翠，云雾缭绕，碧水如镜。小舟悠然滑过水面，倒映着丹霞奇峰，远山如黛，近水含烟。</p>
+        <div class="post-interaction">
+          <div class="interaction-item">
+            <i class="far fa-comment"></i> <span>8</span>
+          </div>
+          <div class="interaction-item">
+            <i class="fas fa-heart"></i> <span>12</span>
+          </div>
+        </div>
+      </div>
+    </a>
+    <a href="5.html" style="text-decoration: none; display: block;">
+      <div class="post-card">
+        <div class="post-meta">
+          <i class="far fa-clock"></i>发布于：10小时前
+        </div>
+        <img class="post-image" src="https://tse2-mm.cn.bing.net/th/id/OIP-C.OoE18Fp4r5TgJHd32JmaOQHaE8?w=273&h=182&c=7&r=0&o=5&dpr=1.2&pid=1.7" alt="山水作品">
+        <h3 class="post-title">丹霞奇峰映碧水</h3>
+        <p class="post-description">山峦叠翠，云雾缭绕，碧水如镜。小舟悠然滑过水面，倒映着丹霞奇峰，远山如黛，近水含烟。</p>
+        <div class="post-interaction">
+          <div class="interaction-item">
+            <i class="far fa-comment"></i> <span>8</span>
+          </div>
+          <div class="interaction-item">
+            <i class="fas fa-heart"></i> <span>12</span>
+          </div>
+        </div>
+      </div>
+    </a>
+  </section>
+</div>
+</body>
+</html>

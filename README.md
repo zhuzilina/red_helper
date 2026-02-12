@@ -1,16 +1,8 @@
 # red_helper
+小红同学，一款基于flutter 跨平台开源框架的红色文化旅游服务移动APP。
 
-A new Flutter project.
+## 快速开始
 
-## Getting Started
+### 配置环境
 
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### 构建应用
